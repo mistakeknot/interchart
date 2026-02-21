@@ -2,8 +2,10 @@ name: Regenerate Ecosystem Diagram
 
 on:
   schedule:
-    # Every 6 hours
+    # Every 6 hours as safety net
     - cron: '0 */6 * * *'
+  repository_dispatch:
+    types: [ecosystem-changed]
   workflow_dispatch:
 
 permissions:
@@ -125,7 +127,7 @@ jobs:
           fi
 
       - name: Deploy to gh-pages
-        if: steps.diff.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.diff.outputs.changed == 'true' || github.event_name != 'schedule'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
