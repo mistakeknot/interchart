@@ -20,12 +20,12 @@ node -e "
   fs.writeFileSync('$TMPHTML', tmpl.replace('/*DATA_PLACEHOLDER*/', data.trim()));
 " <<< "$DATA"
 
-# Check if anything changed
+# Check if anything changed (compare full file hash, not just node count)
 CURRENT="$INTERVERSE_ROOT/docs/diagrams/ecosystem.html"
 if [ -f "$CURRENT" ]; then
-  OLD_NODES=$(grep -o '"nodes":[0-9]*' "$CURRENT" | head -1 || true)
-  NEW_NODES=$(grep -o '"nodes":[0-9]*' "$TMPHTML" | head -1 || true)
-  if [ "$OLD_NODES" = "$NEW_NODES" ]; then
+  OLD_HASH=$(sha256sum "$CURRENT" | cut -d' ' -f1)
+  NEW_HASH=$(sha256sum "$TMPHTML" | cut -d' ' -f1)
+  if [ "$OLD_HASH" = "$NEW_HASH" ]; then
     rm "$TMPHTML"
     exit 0
   fi
