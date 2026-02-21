@@ -28,35 +28,84 @@ body {
   padding: 8px 16px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 12px;
+  height: 44px;
 }
 
 #toolbar .title {
   font-weight: 600;
   font-size: 14px;
   color: #f0f6fc;
-  margin-right: 12px;
   white-space: nowrap;
 }
 
 #toolbar .stats {
   font-size: 11px;
   color: #8b949e;
-  margin-right: 12px;
   white-space: nowrap;
+}
+
+#filter-sidebar {
+  position: fixed;
+  top: 44px;
+  left: 0;
+  width: 180px;
+  height: calc(100vh - 44px);
+  background: #161b22;
+  border-right: 1px solid #30363d;
+  z-index: 90;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#filter-sidebar .sidebar-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+#filter-sidebar .meta-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+#filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid #30363d;
+  padding-top: 8px;
 }
 
 .filter-btn {
   border: 1px solid #30363d;
   background: transparent;
   color: #8b949e;
-  padding: 3px 10px;
-  border-radius: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
   font-size: 11px;
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-btn .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .filter-btn.active {
@@ -71,11 +120,22 @@ body {
   font-weight: 600;
   border-color: #58a6ff;
   color: #58a6ff;
+  width: auto;
+  flex: 1;
+  text-align: center;
+  justify-content: center;
 }
 
 .filter-btn.meta:hover { background: rgba(88, 166, 255, 0.1); }
 
-#graph { width: 100vw; height: 100vh; padding-top: 44px; }
+#search-box {
+  border: 1px solid #30363d; background: #0d1117; color: #c9d1d9;
+  padding: 4px 10px; border-radius: 6px; font-size: 12px;
+  width: 160px; margin-left: auto;
+}
+#search-box:focus { outline: none; border-color: #58a6ff; }
+
+#graph { width: 100vw; height: 100vh; padding-top: 44px; padding-left: 180px; }
 #graph svg { width: 100%; height: 100%; }
 
 .node circle { cursor: pointer; transition: opacity 0.2s; }
@@ -89,6 +149,7 @@ body {
 .link.fires-hook { stroke: #E74C3C; stroke-dasharray: 2 2; }
 .link.companion-of { stroke: #F39C12; stroke-dasharray: 6 3; stroke-width: 2; }
 .link.depends-on { stroke: #1ABC9C; stroke-dasharray: 4 4; }
+.link.overlaps-with { stroke: #FFD166; stroke-dasharray: 1 4; stroke-width: 1.5; }
 .link.part-of { stroke: #30363d; }
 
 .dimmed circle { opacity: 0.1; }
@@ -146,15 +207,8 @@ body {
 #detail-panel .meta-item { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
 #detail-panel .meta-item span { color: #c9d1d9; }
 
-#search-box {
-  border: 1px solid #30363d; background: #0d1117; color: #c9d1d9;
-  padding: 4px 10px; border-radius: 6px; font-size: 12px;
-  width: 160px; margin-left: auto;
-}
-#search-box:focus { outline: none; border-color: #58a6ff; }
-
 .legend {
-  position: fixed; bottom: 12px; left: 12px;
+  position: fixed; bottom: 12px; left: 192px;
   background: rgba(22, 27, 34, 0.9); border: 1px solid #30363d;
   border-radius: 8px; padding: 10px 14px; font-size: 11px; z-index: 80;
 }
@@ -167,9 +221,17 @@ body {
 <div id="toolbar">
   <span class="title">Interverse Ecosystem</span>
   <span class="stats" id="stats"></span>
-  <button class="filter-btn meta" onclick="showAll()">All</button>
-  <button class="filter-btn meta" onclick="hideAll()">None</button>
   <input type="text" id="search-box" placeholder="Search nodes..." oninput="onSearch(this.value)">
+</div>
+
+<div id="filter-sidebar">
+  <div class="sidebar-title">Filters</div>
+  <div class="meta-row">
+    <button class="filter-btn meta" onclick="showAll()">All</button>
+    <button class="filter-btn meta" onclick="hideAll()">None</button>
+  </div>
+  <button class="filter-btn meta" id="overlap-toggle" onclick="toggleOverlapEdges()">Overlaps: On</button>
+  <div id="filter-list"></div>
 </div>
 
 <div id="graph"></div>
@@ -184,17 +246,18 @@ body {
 <script>
 // DATA_PLACEHOLDER is replaced by the generator with scanned JSON
 const data = {
-  "generated": "2026-02-21T03:43:43.707Z",
+  "generated": "2026-02-21T04:12:57.410Z",
   "stats": {
-    "nodes": 96,
-    "edges": 112,
+    "nodes": 121,
+    "edges": 181,
+    "overlaps": 35,
     "byType": {
       "monorepo": 1,
-      "plugin": 22,
-      "skill": 35,
-      "agent": 19,
-      "mcp-server": 9,
+      "plugin": 31,
+      "skill": 46,
       "hook-event": 5,
+      "agent": 21,
+      "mcp-server": 12,
       "hub": 1,
       "kernel": 1,
       "service": 1,
@@ -208,6 +271,33 @@ const data = {
       "type": "monorepo",
       "label": "Interverse",
       "description": "Monorepo for the inter-module ecosystem",
+      "meta": {}
+    },
+    {
+      "id": "intercheck",
+      "type": "plugin",
+      "label": "intercheck",
+      "description": "Code quality guards and session health monitoring",
+      "meta": {
+        "version": "0.1.6",
+        "path": "plugins/intercheck"
+      }
+    },
+    {
+      "id": "intercheck:status",
+      "type": "skill",
+      "label": "status",
+      "description": "",
+      "meta": {
+        "plugin": "intercheck",
+        "path": "plugins/intercheck/skills/status"
+      }
+    },
+    {
+      "id": "hook:PostToolUse",
+      "type": "hook-event",
+      "label": "PostToolUse",
+      "description": "Hook event: PostToolUse",
       "meta": {}
     },
     {
@@ -363,13 +453,6 @@ const data = {
         "type": "stdio",
         "command": "node"
       }
-    },
-    {
-      "id": "hook:PostToolUse",
-      "type": "hook-event",
-      "label": "PostToolUse",
-      "description": "Hook event: PostToolUse",
-      "meta": {}
     },
     {
       "id": "interflux",
@@ -653,6 +736,65 @@ const data = {
       }
     },
     {
+      "id": "interkasten",
+      "type": "plugin",
+      "label": "interkasten",
+      "description": "Living bridge between your projects folder and Notion — bidirectional sync with adaptive AI documentation and pagent workflow automation",
+      "meta": {
+        "version": "0.4.3",
+        "path": "plugins/interkasten",
+        "commandCount": 2
+      }
+    },
+    {
+      "id": "interkasten:layout",
+      "type": "skill",
+      "label": "layout",
+      "description": "",
+      "meta": {
+        "plugin": "interkasten",
+        "path": "plugins/interkasten/skills/layout"
+      }
+    },
+    {
+      "id": "interkasten:onboard",
+      "type": "skill",
+      "label": "onboard",
+      "description": "",
+      "meta": {
+        "plugin": "interkasten",
+        "path": "plugins/interkasten/skills/onboard"
+      }
+    },
+    {
+      "id": "interkasten:doctor",
+      "type": "skill",
+      "label": "doctor",
+      "description": "",
+      "meta": {
+        "plugin": "interkasten",
+        "path": "plugins/interkasten/skills/doctor"
+      }
+    },
+    {
+      "id": "mcp:interkasten:interkasten",
+      "type": "mcp-server",
+      "label": "interkasten",
+      "description": "MCP server: stdio",
+      "meta": {
+        "plugin": "interkasten",
+        "type": "stdio",
+        "command": "bash"
+      }
+    },
+    {
+      "id": "hook:Stop",
+      "type": "hook-event",
+      "label": "Stop",
+      "description": "Hook event: Stop",
+      "meta": {}
+    },
+    {
       "id": "interleave",
       "type": "plugin",
       "label": "interleave",
@@ -732,11 +874,35 @@ const data = {
       "meta": {}
     },
     {
-      "id": "hook:Stop",
-      "type": "hook-event",
-      "label": "Stop",
-      "description": "Hook event: Stop",
-      "meta": {}
+      "id": "intermap",
+      "type": "plugin",
+      "label": "intermap",
+      "description": "Project-level code mapping: project registry, call graphs, architecture analysis, agent overlay. MCP server with 6 tools.",
+      "meta": {
+        "version": "0.1.3",
+        "path": "plugins/intermap"
+      }
+    },
+    {
+      "id": "intermap:skills",
+      "type": "skill",
+      "label": "skills",
+      "description": "",
+      "meta": {
+        "plugin": "intermap",
+        "path": "plugins/intermap/skills"
+      }
+    },
+    {
+      "id": "mcp:intermap:intermap",
+      "type": "mcp-server",
+      "label": "intermap",
+      "description": "MCP server: stdio",
+      "meta": {
+        "plugin": "intermap",
+        "type": "stdio",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/launch-mcp.sh"
+      }
     },
     {
       "id": "intermem",
@@ -756,6 +922,37 @@ const data = {
       "meta": {
         "plugin": "intermem",
         "path": "plugins/intermem/skills/synthesize"
+      }
+    },
+    {
+      "id": "intermux",
+      "type": "plugin",
+      "label": "intermux",
+      "description": "Agent activity visibility -- tmux monitoring, activity feeds, health detection. Enriches intermute with live context.",
+      "meta": {
+        "version": "0.1.1",
+        "path": "plugins/intermux"
+      }
+    },
+    {
+      "id": "intermux:status",
+      "type": "skill",
+      "label": "status",
+      "description": "",
+      "meta": {
+        "plugin": "intermux",
+        "path": "plugins/intermux/skills/status"
+      }
+    },
+    {
+      "id": "mcp:intermux:intermux",
+      "type": "mcp-server",
+      "label": "intermux",
+      "description": "MCP server: stdio",
+      "meta": {
+        "plugin": "intermux",
+        "type": "stdio",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/launch-mcp.sh"
       }
     },
     {
@@ -789,6 +986,26 @@ const data = {
       }
     },
     {
+      "id": "interpeer",
+      "type": "plugin",
+      "label": "interpeer",
+      "description": "Cross-AI peer review — quick (Claude↔Codex), deep (Oracle), council (multi-model), mine (disagreement extraction).",
+      "meta": {
+        "version": "0.1.0",
+        "path": "plugins/interpeer"
+      }
+    },
+    {
+      "id": "interpeer:interpeer",
+      "type": "skill",
+      "label": "interpeer",
+      "description": "Cross-AI peer review with escalation modes — quick (Claude↔Codex), deep (reviewed Oracle query, formerly prompterpeer), council (multi-model synthesis, formerly winterpeer), mine (disagreement extraction, formerly splinterpeer). Auto-detects host agent.",
+      "meta": {
+        "plugin": "interpeer",
+        "path": "plugins/interpeer/skills/interpeer"
+      }
+    },
+    {
       "id": "interphase",
       "type": "plugin",
       "label": "interphase",
@@ -807,6 +1024,16 @@ const data = {
         "version": "0.1.2",
         "path": "plugins/interpub",
         "commandCount": 1
+      }
+    },
+    {
+      "id": "intersearch",
+      "type": "plugin",
+      "label": "intersearch",
+      "description": "Shared embedding and search infrastructure for the Interverse ecosystem — sentence-transformer embeddings and Exa web search.",
+      "meta": {
+        "version": "0.1.1",
+        "path": "plugins/intersearch"
       }
     },
     {
@@ -848,6 +1075,103 @@ const data = {
       "meta": {
         "plugin": "interslack",
         "path": "plugins/interslack/skills/slack-messaging"
+      }
+    },
+    {
+      "id": "interstat",
+      "type": "plugin",
+      "label": "interstat",
+      "description": "Token efficiency benchmarking for agent workflows",
+      "meta": {
+        "version": "0.2.3",
+        "path": "plugins/interstat"
+      }
+    },
+    {
+      "id": "interstat:skills",
+      "type": "skill",
+      "label": "skills",
+      "description": "",
+      "meta": {
+        "plugin": "interstat",
+        "path": "plugins/interstat/skills"
+      }
+    },
+    {
+      "id": "hook:SessionEnd",
+      "type": "hook-event",
+      "label": "SessionEnd",
+      "description": "Hook event: SessionEnd",
+      "meta": {}
+    },
+    {
+      "id": "intersynth",
+      "type": "plugin",
+      "label": "intersynth",
+      "description": "Multi-agent synthesis engine — collects findings from parallel review/research agents, deduplicates, writes verdicts, produces compact summaries. Keeps agent output out of the host context.",
+      "meta": {
+        "version": "0.1.2",
+        "path": "plugins/intersynth"
+      }
+    },
+    {
+      "id": "intersynth:agent:synthesize-review",
+      "type": "agent",
+      "label": "synthesize-review",
+      "description": "",
+      "meta": {
+        "plugin": "intersynth",
+        "path": "./agents/synthesize-review.md"
+      }
+    },
+    {
+      "id": "intersynth:agent:synthesize-research",
+      "type": "agent",
+      "label": "synthesize-research",
+      "description": "",
+      "meta": {
+        "plugin": "intersynth",
+        "path": "./agents/synthesize-research.md"
+      }
+    },
+    {
+      "id": "intertest",
+      "type": "plugin",
+      "label": "intertest",
+      "description": "Engineering quality disciplines — systematic debugging, test-driven development, and verification gates.",
+      "meta": {
+        "version": "0.1.1",
+        "path": "plugins/intertest"
+      }
+    },
+    {
+      "id": "intertest:systematic-debugging",
+      "type": "skill",
+      "label": "systematic-debugging",
+      "description": "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes",
+      "meta": {
+        "plugin": "intertest",
+        "path": "plugins/intertest/skills/systematic-debugging"
+      }
+    },
+    {
+      "id": "intertest:test-driven-development",
+      "type": "skill",
+      "label": "test-driven-development",
+      "description": "Use when implementing any feature or bugfix, before writing implementation code",
+      "meta": {
+        "plugin": "intertest",
+        "path": "plugins/intertest/skills/test-driven-development"
+      }
+    },
+    {
+      "id": "intertest:verification-before-completion",
+      "type": "skill",
+      "label": "verification-before-completion",
+      "description": "Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always",
+      "meta": {
+        "plugin": "intertest",
+        "path": "plugins/intertest/skills/verification-before-completion"
       }
     },
     {
@@ -931,13 +1255,6 @@ const data = {
         "version": "0.3.5",
         "path": "plugins/tool-time"
       }
-    },
-    {
-      "id": "hook:SessionEnd",
-      "type": "hook-event",
-      "label": "SessionEnd",
-      "description": "Hook event: SessionEnd",
-      "meta": {}
     },
     {
       "id": "tuivision",
@@ -1158,6 +1475,16 @@ const data = {
   ],
   "edges": [
     {
+      "source": "intercheck",
+      "target": "intercheck:status",
+      "type": "provides-skill"
+    },
+    {
+      "source": "intercheck",
+      "target": "hook:PostToolUse",
+      "type": "fires-hook"
+    },
+    {
       "source": "intercraft",
       "target": "intercraft:agent-native-architecture",
       "type": "provides-skill"
@@ -1353,6 +1680,36 @@ const data = {
       "type": "fires-hook"
     },
     {
+      "source": "interkasten",
+      "target": "interkasten:layout",
+      "type": "provides-skill"
+    },
+    {
+      "source": "interkasten",
+      "target": "interkasten:onboard",
+      "type": "provides-skill"
+    },
+    {
+      "source": "interkasten",
+      "target": "interkasten:doctor",
+      "type": "provides-skill"
+    },
+    {
+      "source": "interkasten",
+      "target": "mcp:interkasten:interkasten",
+      "type": "provides-mcp"
+    },
+    {
+      "source": "interkasten",
+      "target": "hook:SessionStart",
+      "type": "fires-hook"
+    },
+    {
+      "source": "interkasten",
+      "target": "hook:Stop",
+      "type": "fires-hook"
+    },
+    {
       "source": "interleave",
       "target": "interleave:interleave",
       "type": "provides-skill"
@@ -1361,6 +1718,11 @@ const data = {
       "source": "interlens",
       "target": "mcp:interlens:interlens",
       "type": "provides-mcp"
+    },
+    {
+      "source": "interline",
+      "target": "hook:SessionStart",
+      "type": "fires-hook"
     },
     {
       "source": "interlock",
@@ -1388,9 +1750,39 @@ const data = {
       "type": "companion-of"
     },
     {
+      "source": "intermap",
+      "target": "intermap:skills",
+      "type": "provides-skill"
+    },
+    {
+      "source": "intermap",
+      "target": "mcp:intermap:intermap",
+      "type": "provides-mcp"
+    },
+    {
       "source": "intermem",
       "target": "intermem:synthesize",
       "type": "provides-skill"
+    },
+    {
+      "source": "intermem",
+      "target": "hook:SessionStart",
+      "type": "fires-hook"
+    },
+    {
+      "source": "intermux",
+      "target": "intermux:status",
+      "type": "provides-skill"
+    },
+    {
+      "source": "intermux",
+      "target": "mcp:intermux:intermux",
+      "type": "provides-mcp"
+    },
+    {
+      "source": "intermux",
+      "target": "hook:SessionStart",
+      "type": "fires-hook"
     },
     {
       "source": "internext",
@@ -1401,6 +1793,11 @@ const data = {
       "source": "interpath",
       "target": "clavain",
       "type": "companion-of"
+    },
+    {
+      "source": "interpeer",
+      "target": "interpeer:interpeer",
+      "type": "provides-skill"
     },
     {
       "source": "interphase",
@@ -1420,6 +1817,51 @@ const data = {
     {
       "source": "interslack",
       "target": "interslack:slack-messaging",
+      "type": "provides-skill"
+    },
+    {
+      "source": "interstat",
+      "target": "interstat:skills",
+      "type": "provides-skill"
+    },
+    {
+      "source": "interstat",
+      "target": "hook:PostToolUse",
+      "type": "fires-hook"
+    },
+    {
+      "source": "interstat",
+      "target": "hook:SessionEnd",
+      "type": "fires-hook"
+    },
+    {
+      "source": "intersynth",
+      "target": "intersynth:agent:synthesize-review",
+      "type": "provides-agent"
+    },
+    {
+      "source": "intersynth",
+      "target": "intersynth:agent:synthesize-research",
+      "type": "provides-agent"
+    },
+    {
+      "source": "intersynth",
+      "target": "hook:SessionStart",
+      "type": "fires-hook"
+    },
+    {
+      "source": "intertest",
+      "target": "intertest:systematic-debugging",
+      "type": "provides-skill"
+    },
+    {
+      "source": "intertest",
+      "target": "intertest:test-driven-development",
+      "type": "provides-skill"
+    },
+    {
+      "source": "intertest",
+      "target": "intertest:verification-before-completion",
       "type": "provides-skill"
     },
     {
@@ -1608,6 +2050,11 @@ const data = {
       "type": "depends-on"
     },
     {
+      "source": "intercheck",
+      "target": "interverse",
+      "type": "part-of"
+    },
+    {
       "source": "intercraft",
       "target": "interverse",
       "type": "part-of"
@@ -1643,6 +2090,11 @@ const data = {
       "type": "part-of"
     },
     {
+      "source": "interkasten",
+      "target": "interverse",
+      "type": "part-of"
+    },
+    {
       "source": "interleave",
       "target": "interverse",
       "type": "part-of"
@@ -1663,7 +2115,17 @@ const data = {
       "type": "part-of"
     },
     {
+      "source": "intermap",
+      "target": "interverse",
+      "type": "part-of"
+    },
+    {
       "source": "intermem",
+      "target": "interverse",
+      "type": "part-of"
+    },
+    {
+      "source": "intermux",
       "target": "interverse",
       "type": "part-of"
     },
@@ -1678,6 +2140,11 @@ const data = {
       "type": "part-of"
     },
     {
+      "source": "interpeer",
+      "target": "interverse",
+      "type": "part-of"
+    },
+    {
       "source": "interphase",
       "target": "interverse",
       "type": "part-of"
@@ -1688,12 +2155,32 @@ const data = {
       "type": "part-of"
     },
     {
+      "source": "intersearch",
+      "target": "interverse",
+      "type": "part-of"
+    },
+    {
       "source": "interserve",
       "target": "interverse",
       "type": "part-of"
     },
     {
       "source": "interslack",
+      "target": "interverse",
+      "type": "part-of"
+    },
+    {
+      "source": "interstat",
+      "target": "interverse",
+      "type": "part-of"
+    },
+    {
+      "source": "intersynth",
+      "target": "interverse",
+      "type": "part-of"
+    },
+    {
+      "source": "intertest",
       "target": "interverse",
       "type": "part-of"
     },
@@ -1716,6 +2203,795 @@ const data = {
       "source": "tuivision",
       "target": "interverse",
       "type": "part-of"
+    },
+    {
+      "source": "intercheck",
+      "target": "interstat",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.3,
+        "domains": [
+          "analytics-observability",
+          "analytics-quality-stack"
+        ]
+      }
+    },
+    {
+      "source": "intercheck",
+      "target": "tool-time",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.3,
+        "domains": [
+          "analytics-observability",
+          "analytics-quality-stack"
+        ]
+      }
+    },
+    {
+      "source": "intercraft",
+      "target": "interform",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.1,
+        "domains": [
+          "quality-review",
+          "design-product"
+        ]
+      }
+    },
+    {
+      "source": "intercraft",
+      "target": "tuivision",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.1,
+        "domains": [
+          "quality-review",
+          "design-product"
+        ]
+      }
+    },
+    {
+      "source": "interdoc",
+      "target": "interkasten",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 0.9,
+        "domains": [
+          "doc-lifecycle-stack"
+        ]
+      }
+    },
+    {
+      "source": "interdoc",
+      "target": "intermem",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 0.9,
+        "domains": [
+          "doc-lifecycle-stack"
+        ]
+      }
+    },
+    {
+      "source": "interdoc",
+      "target": "interpath",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 0.9,
+        "domains": [
+          "doc-lifecycle-stack"
+        ]
+      }
+    },
+    {
+      "source": "interdoc",
+      "target": "interwatch",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 0.9,
+        "domains": [
+          "doc-lifecycle-stack"
+        ]
+      }
+    },
+    {
+      "source": "interflux",
+      "target": "interject",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 1.9,
+        "domains": [
+          "discovery-research",
+          "discovery-context-stack"
+        ]
+      }
+    },
+    {
+      "source": "interflux",
+      "target": "interlens",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.3,
+        "domains": [
+          "quality-review",
+          "discovery-research"
+        ]
+      }
+    },
+    {
+      "source": "interflux",
+      "target": "intermap",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 0.8,
+        "domains": [
+          "discovery-context-stack"
+        ]
+      }
+    },
+    {
+      "source": "interflux",
+      "target": "intersearch",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 1.9,
+        "domains": [
+          "discovery-research",
+          "discovery-context-stack"
+        ]
+      }
+    },
+    {
+      "source": "interflux",
+      "target": "intersynth",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.3,
+        "domains": [
+          "quality-review",
+          "discovery-research"
+        ]
+      }
+    },
+    {
+      "source": "interflux",
+      "target": "tldr-swinton",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 1.9,
+        "domains": [
+          "discovery-research",
+          "discovery-context-stack"
+        ]
+      }
+    },
+    {
+      "source": "interform",
+      "target": "tuivision",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.1,
+        "domains": [
+          "quality-review",
+          "design-product"
+        ]
+      }
+    },
+    {
+      "source": "interject",
+      "target": "intermap",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 0.8,
+        "domains": [
+          "discovery-context-stack"
+        ]
+      }
+    },
+    {
+      "source": "interject",
+      "target": "intersearch",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 1.9,
+        "domains": [
+          "discovery-research",
+          "discovery-context-stack"
+        ]
+      }
+    },
+    {
+      "source": "interject",
+      "target": "tldr-swinton",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 1.9,
+        "domains": [
+          "discovery-research",
+          "discovery-context-stack"
+        ]
+      }
+    },
+    {
+      "source": "interkasten",
+      "target": "intermem",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2,
+        "domains": [
+          "docs-artifacts",
+          "doc-lifecycle-stack"
+        ]
+      }
+    },
+    {
+      "source": "interkasten",
+      "target": "interpath",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2,
+        "domains": [
+          "docs-artifacts",
+          "doc-lifecycle-stack"
+        ]
+      }
+    },
+    {
+      "source": "interkasten",
+      "target": "interwatch",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2,
+        "domains": [
+          "docs-artifacts",
+          "doc-lifecycle-stack"
+        ]
+      }
+    },
+    {
+      "source": "interlens",
+      "target": "intersynth",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.3,
+        "domains": [
+          "quality-review",
+          "discovery-research"
+        ]
+      }
+    },
+    {
+      "source": "interline",
+      "target": "intercore",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.3,
+        "domains": [
+          "phase-gates",
+          "coordination-dispatch"
+        ]
+      }
+    },
+    {
+      "source": "intermap",
+      "target": "intersearch",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 0.8,
+        "domains": [
+          "discovery-context-stack"
+        ]
+      }
+    },
+    {
+      "source": "intermap",
+      "target": "tldr-swinton",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 0.8,
+        "domains": [
+          "discovery-context-stack"
+        ]
+      }
+    },
+    {
+      "source": "intermem",
+      "target": "interpath",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2,
+        "domains": [
+          "docs-artifacts",
+          "doc-lifecycle-stack"
+        ]
+      }
+    },
+    {
+      "source": "intermem",
+      "target": "interwatch",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2,
+        "domains": [
+          "docs-artifacts",
+          "doc-lifecycle-stack"
+        ]
+      }
+    },
+    {
+      "source": "interpath",
+      "target": "interwatch",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.9,
+        "domains": [
+          "docs-artifacts",
+          "design-product",
+          "doc-lifecycle-stack"
+        ]
+      }
+    },
+    {
+      "source": "interpath",
+      "target": "clavain",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2,
+        "domains": [
+          "docs-artifacts",
+          "design-product"
+        ]
+      }
+    },
+    {
+      "source": "interphase",
+      "target": "clavain",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 1.4,
+        "domains": [
+          "phase-gate-control"
+        ]
+      }
+    },
+    {
+      "source": "interphase",
+      "target": "intercore",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.7,
+        "domains": [
+          "phase-gates",
+          "phase-gate-control"
+        ]
+      }
+    },
+    {
+      "source": "intersearch",
+      "target": "tldr-swinton",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 1.9,
+        "domains": [
+          "discovery-research",
+          "discovery-context-stack"
+        ]
+      }
+    },
+    {
+      "source": "interstat",
+      "target": "tool-time",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2.3,
+        "domains": [
+          "analytics-observability",
+          "analytics-quality-stack"
+        ]
+      }
+    },
+    {
+      "source": "interwatch",
+      "target": "clavain",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 2,
+        "domains": [
+          "docs-artifacts",
+          "design-product"
+        ]
+      }
+    },
+    {
+      "source": "clavain",
+      "target": "intercore",
+      "type": "overlaps-with",
+      "meta": {
+        "score": 1.4,
+        "domains": [
+          "phase-gate-control"
+        ]
+      }
+    }
+  ],
+  "overlaps": [
+    {
+      "source": "interpath",
+      "sourceLabel": "interpath",
+      "target": "interwatch",
+      "targetLabel": "interwatch",
+      "score": 2.9,
+      "domains": [
+        "docs-artifacts",
+        "design-product",
+        "doc-lifecycle-stack"
+      ]
+    },
+    {
+      "source": "interphase",
+      "sourceLabel": "interphase",
+      "target": "intercore",
+      "targetLabel": "Intercore",
+      "score": 2.7,
+      "domains": [
+        "phase-gates",
+        "phase-gate-control"
+      ]
+    },
+    {
+      "source": "intercheck",
+      "sourceLabel": "intercheck",
+      "target": "interstat",
+      "targetLabel": "interstat",
+      "score": 2.3,
+      "domains": [
+        "analytics-observability",
+        "analytics-quality-stack"
+      ]
+    },
+    {
+      "source": "intercheck",
+      "sourceLabel": "intercheck",
+      "target": "tool-time",
+      "targetLabel": "tool-time",
+      "score": 2.3,
+      "domains": [
+        "analytics-observability",
+        "analytics-quality-stack"
+      ]
+    },
+    {
+      "source": "interflux",
+      "sourceLabel": "interflux",
+      "target": "interlens",
+      "targetLabel": "interlens",
+      "score": 2.3,
+      "domains": [
+        "quality-review",
+        "discovery-research"
+      ]
+    },
+    {
+      "source": "interflux",
+      "sourceLabel": "interflux",
+      "target": "intersynth",
+      "targetLabel": "intersynth",
+      "score": 2.3,
+      "domains": [
+        "quality-review",
+        "discovery-research"
+      ]
+    },
+    {
+      "source": "interlens",
+      "sourceLabel": "interlens",
+      "target": "intersynth",
+      "targetLabel": "intersynth",
+      "score": 2.3,
+      "domains": [
+        "quality-review",
+        "discovery-research"
+      ]
+    },
+    {
+      "source": "interline",
+      "sourceLabel": "interline",
+      "target": "intercore",
+      "targetLabel": "Intercore",
+      "score": 2.3,
+      "domains": [
+        "phase-gates",
+        "coordination-dispatch"
+      ]
+    },
+    {
+      "source": "interstat",
+      "sourceLabel": "interstat",
+      "target": "tool-time",
+      "targetLabel": "tool-time",
+      "score": 2.3,
+      "domains": [
+        "analytics-observability",
+        "analytics-quality-stack"
+      ]
+    },
+    {
+      "source": "intercraft",
+      "sourceLabel": "intercraft",
+      "target": "interform",
+      "targetLabel": "interform",
+      "score": 2.1,
+      "domains": [
+        "quality-review",
+        "design-product"
+      ]
+    },
+    {
+      "source": "intercraft",
+      "sourceLabel": "intercraft",
+      "target": "tuivision",
+      "targetLabel": "tuivision",
+      "score": 2.1,
+      "domains": [
+        "quality-review",
+        "design-product"
+      ]
+    },
+    {
+      "source": "interform",
+      "sourceLabel": "interform",
+      "target": "tuivision",
+      "targetLabel": "tuivision",
+      "score": 2.1,
+      "domains": [
+        "quality-review",
+        "design-product"
+      ]
+    },
+    {
+      "source": "interkasten",
+      "sourceLabel": "interkasten",
+      "target": "intermem",
+      "targetLabel": "intermem",
+      "score": 2,
+      "domains": [
+        "docs-artifacts",
+        "doc-lifecycle-stack"
+      ]
+    },
+    {
+      "source": "interkasten",
+      "sourceLabel": "interkasten",
+      "target": "interpath",
+      "targetLabel": "interpath",
+      "score": 2,
+      "domains": [
+        "docs-artifacts",
+        "doc-lifecycle-stack"
+      ]
+    },
+    {
+      "source": "interkasten",
+      "sourceLabel": "interkasten",
+      "target": "interwatch",
+      "targetLabel": "interwatch",
+      "score": 2,
+      "domains": [
+        "docs-artifacts",
+        "doc-lifecycle-stack"
+      ]
+    },
+    {
+      "source": "intermem",
+      "sourceLabel": "intermem",
+      "target": "interpath",
+      "targetLabel": "interpath",
+      "score": 2,
+      "domains": [
+        "docs-artifacts",
+        "doc-lifecycle-stack"
+      ]
+    },
+    {
+      "source": "intermem",
+      "sourceLabel": "intermem",
+      "target": "interwatch",
+      "targetLabel": "interwatch",
+      "score": 2,
+      "domains": [
+        "docs-artifacts",
+        "doc-lifecycle-stack"
+      ]
+    },
+    {
+      "source": "interpath",
+      "sourceLabel": "interpath",
+      "target": "clavain",
+      "targetLabel": "clavain",
+      "score": 2,
+      "domains": [
+        "docs-artifacts",
+        "design-product"
+      ]
+    },
+    {
+      "source": "interwatch",
+      "sourceLabel": "interwatch",
+      "target": "clavain",
+      "targetLabel": "clavain",
+      "score": 2,
+      "domains": [
+        "docs-artifacts",
+        "design-product"
+      ]
+    },
+    {
+      "source": "interflux",
+      "sourceLabel": "interflux",
+      "target": "interject",
+      "targetLabel": "interject",
+      "score": 1.9,
+      "domains": [
+        "discovery-research",
+        "discovery-context-stack"
+      ]
+    },
+    {
+      "source": "interflux",
+      "sourceLabel": "interflux",
+      "target": "intersearch",
+      "targetLabel": "intersearch",
+      "score": 1.9,
+      "domains": [
+        "discovery-research",
+        "discovery-context-stack"
+      ]
+    },
+    {
+      "source": "interflux",
+      "sourceLabel": "interflux",
+      "target": "tldr-swinton",
+      "targetLabel": "tldr-swinton",
+      "score": 1.9,
+      "domains": [
+        "discovery-research",
+        "discovery-context-stack"
+      ]
+    },
+    {
+      "source": "interject",
+      "sourceLabel": "interject",
+      "target": "intersearch",
+      "targetLabel": "intersearch",
+      "score": 1.9,
+      "domains": [
+        "discovery-research",
+        "discovery-context-stack"
+      ]
+    },
+    {
+      "source": "interject",
+      "sourceLabel": "interject",
+      "target": "tldr-swinton",
+      "targetLabel": "tldr-swinton",
+      "score": 1.9,
+      "domains": [
+        "discovery-research",
+        "discovery-context-stack"
+      ]
+    },
+    {
+      "source": "intersearch",
+      "sourceLabel": "intersearch",
+      "target": "tldr-swinton",
+      "targetLabel": "tldr-swinton",
+      "score": 1.9,
+      "domains": [
+        "discovery-research",
+        "discovery-context-stack"
+      ]
+    },
+    {
+      "source": "clavain",
+      "sourceLabel": "clavain",
+      "target": "intercore",
+      "targetLabel": "Intercore",
+      "score": 1.4,
+      "domains": [
+        "phase-gate-control"
+      ]
+    },
+    {
+      "source": "interphase",
+      "sourceLabel": "interphase",
+      "target": "clavain",
+      "targetLabel": "clavain",
+      "score": 1.4,
+      "domains": [
+        "phase-gate-control"
+      ]
+    },
+    {
+      "source": "interdoc",
+      "sourceLabel": "interdoc",
+      "target": "interkasten",
+      "targetLabel": "interkasten",
+      "score": 0.9,
+      "domains": [
+        "doc-lifecycle-stack"
+      ]
+    },
+    {
+      "source": "interdoc",
+      "sourceLabel": "interdoc",
+      "target": "intermem",
+      "targetLabel": "intermem",
+      "score": 0.9,
+      "domains": [
+        "doc-lifecycle-stack"
+      ]
+    },
+    {
+      "source": "interdoc",
+      "sourceLabel": "interdoc",
+      "target": "interpath",
+      "targetLabel": "interpath",
+      "score": 0.9,
+      "domains": [
+        "doc-lifecycle-stack"
+      ]
+    },
+    {
+      "source": "interdoc",
+      "sourceLabel": "interdoc",
+      "target": "interwatch",
+      "targetLabel": "interwatch",
+      "score": 0.9,
+      "domains": [
+        "doc-lifecycle-stack"
+      ]
+    },
+    {
+      "source": "interflux",
+      "sourceLabel": "interflux",
+      "target": "intermap",
+      "targetLabel": "intermap",
+      "score": 0.8,
+      "domains": [
+        "discovery-context-stack"
+      ]
+    },
+    {
+      "source": "interject",
+      "sourceLabel": "interject",
+      "target": "intermap",
+      "targetLabel": "intermap",
+      "score": 0.8,
+      "domains": [
+        "discovery-context-stack"
+      ]
+    },
+    {
+      "source": "intermap",
+      "sourceLabel": "intermap",
+      "target": "intersearch",
+      "targetLabel": "intersearch",
+      "score": 0.8,
+      "domains": [
+        "discovery-context-stack"
+      ]
+    },
+    {
+      "source": "intermap",
+      "sourceLabel": "intermap",
+      "target": "tldr-swinton",
+      "targetLabel": "tldr-swinton",
+      "score": 0.8,
+      "domains": [
+        "discovery-context-stack"
+      ]
     }
   ]
 };
@@ -1742,24 +3018,28 @@ const TYPE_LABELS = {
 const activeFilters = new Set(Object.keys(TYPE_COLORS));
 let selectedNode = null;
 let searchQuery = '';
+let showOverlapEdges = true;
 
 // Stats
 document.getElementById('stats').textContent =
-  data.stats.nodes + ' nodes \u00b7 ' + data.stats.edges + ' edges \u00b7 Generated ' + new Date(data.generated).toLocaleDateString();
+  data.stats.nodes + ' nodes \u00b7 ' + data.stats.edges + ' edges \u00b7 ' + (data.stats.overlaps || 0) + ' overlaps \u00b7 Generated ' + new Date(data.generated).toLocaleDateString();
 
-// Build filter buttons
-const toolbar = document.getElementById('toolbar');
-const searchBox = document.getElementById('search-box');
+// Build filter buttons into sidebar
+const filterList = document.getElementById('filter-list');
 for (const [type, color] of Object.entries(TYPE_COLORS)) {
   const count = data.stats.byType[type] || 0;
   if (count === 0) continue;
   const btn = document.createElement('button');
   btn.className = 'filter-btn active';
   btn.style.setProperty('--type-color', color);
-  btn.textContent = TYPE_LABELS[type] + ' (' + count + ')';
+  const dot = document.createElement('span');
+  dot.className = 'dot';
+  dot.style.background = color;
+  btn.appendChild(dot);
+  btn.appendChild(document.createTextNode(TYPE_LABELS[type] + ' (' + count + ')'));
   btn.dataset.type = type;
   btn.onclick = function() { toggleFilter(type, btn); };
-  toolbar.insertBefore(btn, searchBox);
+  filterList.appendChild(btn);
 }
 
 // Build legend
@@ -1777,6 +3057,7 @@ for (const [type, color] of Object.entries(TYPE_COLORS)) {
 }
 
 // D3 Setup
+const sidebarWidth = 180;
 const width = window.innerWidth;
 const height = window.innerHeight - 44;
 
@@ -1798,6 +3079,7 @@ const simulation = d3.forceSimulation(graphNodes)
   .force('link', d3.forceLink(graphLinks).id(function(d) { return d.id; }).distance(function(d) {
     if (d.type === 'part-of') return 100;
     if (d.type === 'companion-of') return 120;
+    if (d.type === 'overlaps-with') return 90;
     if (d.type === 'provides-skill' || d.type === 'provides-agent') return 50;
     return 80;
   }))
@@ -1806,7 +3088,7 @@ const simulation = d3.forceSimulation(graphNodes)
     if (d.type === 'plugin' || d.type === 'kernel') return -200;
     return -60;
   }))
-  .force('center', d3.forceCenter(width / 2, height / 2))
+  .force('center', d3.forceCenter((width - sidebarWidth) / 2 + sidebarWidth, height / 2))
   .force('collision', d3.forceCollide().radius(function(d) { return (TYPE_SIZES[d.type] || 8) + 4; }));
 
 // Draw links
@@ -1880,13 +3162,26 @@ function showDetailPanel(d) {
   var children = [], parents = [];
   graphLinks.forEach(function(l) {
     var sid = getNodeId(l.source), tid = getNodeId(l.target);
-    if (sid === d.id && l.type !== 'part-of') {
-      var tn = graphNodes.find(function(n) { return n.id === tid; });
-      if (tn) children.push(Object.assign({edgeType: l.type}, tn));
+
+    if (l.type === 'part-of') return;
+
+    // Overlap is symmetric; show in one "Overlaps" section regardless of edge direction.
+    if (l.type === 'overlaps-with') {
+      if (sid === d.id || tid === d.id) {
+        var otherId = sid === d.id ? tid : sid;
+        var otherNode = graphNodes.find(function(n) { return n.id === otherId; });
+        if (otherNode) children.push(Object.assign({ edgeType: l.type, edgeMeta: l.meta || {} }, otherNode));
+      }
+      return;
     }
-    if (tid === d.id && l.type !== 'part-of') {
+
+    if (sid === d.id) {
+      var tn = graphNodes.find(function(n) { return n.id === tid; });
+      if (tn) children.push(Object.assign({ edgeType: l.type, edgeMeta: l.meta || {} }, tn));
+    }
+    if (tid === d.id) {
       var sn = graphNodes.find(function(n) { return n.id === sid; });
-      if (sn) parents.push(Object.assign({edgeType: l.type}, sn));
+      if (sn) parents.push(Object.assign({ edgeType: l.type, edgeMeta: l.meta || {} }, sn));
     }
   });
 
@@ -1938,7 +3233,8 @@ function showDetailPanel(d) {
 
     var sectionLabels = {
       'provides-skill': 'Skills', 'provides-agent': 'Agents', 'provides-mcp': 'MCP Servers',
-      'fires-hook': 'Hook Events', 'companion-of': 'Companions', 'depends-on': 'Dependencies'
+      'fires-hook': 'Hook Events', 'companion-of': 'Companions', 'depends-on': 'Dependencies',
+      'overlaps-with': 'Overlaps'
     };
 
     Object.keys(grouped).forEach(function(edgeType) {
@@ -1955,7 +3251,17 @@ function showDetailPanel(d) {
         li.textContent = item.label + ' ';
         var typeSpan = document.createElement('span');
         typeSpan.className = 'child-type';
-        typeSpan.textContent = TYPE_LABELS[item.type];
+        if (item.edgeType === 'overlaps-with') {
+          var overlapScore = item.edgeMeta && typeof item.edgeMeta.score === 'number'
+            ? item.edgeMeta.score.toFixed(2)
+            : 'n/a';
+          var overlapDomains = item.edgeMeta && Array.isArray(item.edgeMeta.domains) && item.edgeMeta.domains.length > 0
+            ? ' [' + item.edgeMeta.domains.join(', ') + ']'
+            : '';
+          typeSpan.textContent = TYPE_LABELS[item.type] + ' · score ' + overlapScore + overlapDomains;
+        } else {
+          typeSpan.textContent = TYPE_LABELS[item.type];
+        }
         li.appendChild(typeSpan);
         li.onclick = function() { navigateTo(item.id); };
         ul.appendChild(li);
@@ -2025,6 +3331,13 @@ function hideAll() {
   applyFilters();
 }
 
+function toggleOverlapEdges() {
+  showOverlapEdges = !showOverlapEdges;
+  var btn = document.getElementById('overlap-toggle');
+  btn.textContent = 'Overlap Edges: ' + (showOverlapEdges ? 'On' : 'Off');
+  applyFilters();
+}
+
 function applyFilters() {
   node.style('display', function(d) {
     if (!activeFilters.has(d.type)) return 'none';
@@ -2032,6 +3345,7 @@ function applyFilters() {
     return null;
   });
   link.style('display', function(l) {
+    if (!showOverlapEdges && l.type === 'overlaps-with') return 'none';
     var sn = graphNodes.find(function(n) { return n.id === getNodeId(l.source); });
     var tn = graphNodes.find(function(n) { return n.id === getNodeId(l.target); });
     if (!sn || !tn || !activeFilters.has(sn.type) || !activeFilters.has(tn.type)) return 'none';
@@ -2066,12 +3380,13 @@ function dragended(event, d) {
 // Zoom to fit after layout settles
 setTimeout(function() {
   var bounds = g.node().getBBox();
-  var scale = 0.8 / Math.max(bounds.width / width, bounds.height / height);
+  var graphWidth = width - sidebarWidth;
+  var scale = 0.8 / Math.max(bounds.width / graphWidth, bounds.height / height);
   var midX = bounds.x + bounds.width / 2;
   var midY = bounds.y + bounds.height / 2;
   svg.transition().duration(750).call(
     zoomBehavior.transform,
-    d3.zoomIdentity.translate(width / 2 - scale * midX, height / 2 - scale * midY).scale(scale)
+    d3.zoomIdentity.translate(graphWidth / 2 + sidebarWidth - scale * midX, height / 2 - scale * midY).scale(scale)
   );
 }, 2000);
 </script>
