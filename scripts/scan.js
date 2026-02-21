@@ -10,6 +10,12 @@ const nodes = [];
 const edges = [];
 const nodeIds = new Set();
 const edgeIds = new Set();
+const CLAUDE_CODE_HOOKS_DOCS_URL = 'https://docs.anthropic.com/en/docs/claude-code/hooks';
+const REPO_NAME_OVERRIDES = {
+  interverse: 'Interverse',
+  clavain: 'Clavain',
+  autarch: 'Autarch'
+};
 
 const OVERLAP_DOMAIN_RULES = [
   {
@@ -65,6 +71,12 @@ function addNode(id, type, label, description, meta = {}) {
   if (nodeIds.has(id)) return;
   nodeIds.add(id);
   nodes.push({ id, type, label, description: description || '', meta });
+}
+
+function repoUrlForName(name) {
+  if (!name) return '';
+  const repoName = REPO_NAME_OVERRIDES[name] || name;
+  return `https://github.com/mistakeknot/${repoName}`;
 }
 
 function addEdge(source, target, type, meta = {}) {
@@ -196,7 +208,8 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
   const nodeType = isHub ? 'hub' : 'plugin';
   addNode(manifest.name, nodeType, manifest.name, manifest.description, {
     version: manifest.version,
-    path: path.relative(ROOT, pluginDir)
+    path: path.relative(ROOT, pluginDir),
+    repoUrl: repoUrlForName(manifest.name)
   });
 
   // Skills
@@ -219,7 +232,8 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
       const skillId = `${manifest.name}:${skillName}`;
       addNode(skillId, 'skill', skillName, fm?.description || '', {
         plugin: manifest.name,
-        path: path.relative(ROOT, skillDir)
+        path: path.relative(ROOT, skillDir),
+        repoUrl: repoUrlForName(manifest.name)
       });
       addEdge(manifest.name, skillId, 'provides-skill');
     }
@@ -239,7 +253,8 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
         if (!nodeIds.has(skillId)) {
           addNode(skillId, 'skill', skillName, fm?.description || '', {
             plugin: manifest.name,
-            path: path.relative(ROOT, fullSkillDir)
+            path: path.relative(ROOT, fullSkillDir),
+            repoUrl: repoUrlForName(manifest.name)
           });
           addEdge(manifest.name, skillId, 'provides-skill');
         }
@@ -254,7 +269,8 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
       const agentId = `${manifest.name}:agent:${agentName}`;
       addNode(agentId, 'agent', agentName, '', {
         plugin: manifest.name,
-        path: agentRef
+        path: agentRef,
+        repoUrl: repoUrlForName(manifest.name)
       });
       addEdge(manifest.name, agentId, 'provides-agent');
     }
@@ -267,7 +283,8 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
       addNode(serverId, 'mcp-server', serverName, `MCP server: ${config.type || 'stdio'}`, {
         plugin: manifest.name,
         type: config.type,
-        command: config.command
+        command: config.command,
+        repoUrl: repoUrlForName(manifest.name)
       });
       addEdge(manifest.name, serverId, 'provides-mcp');
     }
@@ -280,7 +297,9 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
     for (const eventName of Object.keys(hooksData.hooks)) {
       const hookId = `hook:${eventName}`;
       if (!nodeIds.has(hookId)) {
-        addNode(hookId, 'hook-event', eventName, `Hook event: ${eventName}`, {});
+        addNode(hookId, 'hook-event', eventName, `Hook event: ${eventName}`, {
+          docsUrl: CLAUDE_CODE_HOOKS_DOCS_URL
+        });
       }
       addEdge(manifest.name, hookId, 'fires-hook');
     }
@@ -306,7 +325,9 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
 // --- Main scan ---
 
 // 1. Monorepo root node
-addNode('interverse', 'monorepo', 'Interverse', 'Monorepo for the inter-module ecosystem');
+addNode('interverse', 'monorepo', 'Interverse', 'Monorepo for the inter-module ecosystem', {
+  repoUrl: repoUrlForName('interverse')
+});
 
 // 2. Scan all plugins
 const pluginsDir = path.join(ROOT, 'plugins');
@@ -333,17 +354,20 @@ try {
 
 // 4. Fixed infrastructure nodes
 addNode('intercore', 'kernel', 'Intercore', 'Kernel — phases, gates, runs, dispatches, state machine', {
-  path: 'infra/intercore'
+  path: 'infra/intercore',
+  repoUrl: repoUrlForName('intercore')
 });
 addEdge('intercore', 'interverse', 'part-of');
 
 addNode('intermute-service', 'service', 'Intermute', 'Multi-agent coordination service (Go)', {
-  path: 'services/intermute'
+  path: 'services/intermute',
+  repoUrl: repoUrlForName('intermute')
 });
 addEdge('intermute-service', 'interverse', 'part-of');
 
 addNode('interbase-sdk', 'sdk', 'Interbase', 'Shared integration SDK for dual-mode plugins', {
-  path: 'sdk/interbase'
+  path: 'sdk/interbase',
+  repoUrl: repoUrlForName('interbase')
 });
 addEdge('interbase-sdk', 'interverse', 'part-of');
 
@@ -352,13 +376,16 @@ const interforgeDir = path.join(ROOT, 'Interforge');
 try {
   fs.statSync(interforgeDir);
   addNode('autarch', 'tui', 'Autarch', 'TUI frontend — desktop application for the agent rig', {
-    path: 'Interforge'
+    path: 'Interforge',
+    repoUrl: repoUrlForName('autarch')
   });
   addEdge('autarch', 'interverse', 'part-of');
   addEdge('autarch', 'intercore', 'depends-on');
 } catch {
   process.stderr.write('warn: Interforge dir not found, adding Autarch as external ref\n');
-  addNode('autarch', 'tui', 'Autarch', 'TUI frontend (external)', {});
+  addNode('autarch', 'tui', 'Autarch', 'TUI frontend (external)', {
+    repoUrl: repoUrlForName('autarch')
+  });
 }
 
 // 5. Structural edges — hub and plugins are part of Interverse

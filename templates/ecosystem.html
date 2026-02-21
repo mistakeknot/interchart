@@ -76,7 +76,7 @@ body {
   margin-bottom: 8px;
 }
 
-#filter-list {
+#filter-list, #domain-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -120,10 +120,21 @@ body {
   font-weight: 600;
   border-color: #58a6ff;
   color: #58a6ff;
+  width: 100%;
+  flex: 0 0 auto;
+  text-align: left;
+  justify-content: flex-start;
+  padding: 3px 8px;
+  font-size: 10px;
+}
+
+#filter-sidebar .meta-row .filter-btn.meta {
   width: auto;
   flex: 1;
   text-align: center;
   justify-content: center;
+  font-size: 11px;
+  padding: 4px 10px;
 }
 
 .filter-btn.meta:hover { background: rgba(88, 166, 255, 0.1); }
@@ -149,8 +160,26 @@ body {
 .link.fires-hook { stroke: #E74C3C; stroke-dasharray: 2 2; }
 .link.companion-of { stroke: #F39C12; stroke-dasharray: 6 3; stroke-width: 2; }
 .link.depends-on { stroke: #1ABC9C; stroke-dasharray: 4 4; }
-.link.overlaps-with { stroke: #FFD166; stroke-dasharray: 1 4; stroke-width: 1.5; }
 .link.part-of { stroke: #30363d; }
+
+.domain-hull {
+  fill-opacity: 0.08;
+  stroke-opacity: 0.35;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 3;
+  pointer-events: none;
+  transition: fill-opacity 0.3s, stroke-opacity 0.3s;
+}
+.domain-hull:hover { fill-opacity: 0.14; stroke-opacity: 0.5; }
+.domain-hull.hidden { fill-opacity: 0; stroke-opacity: 0; }
+
+.domain-label {
+  font-size: 9px;
+  font-weight: 600;
+  fill-opacity: 0.4;
+  pointer-events: none;
+  text-anchor: middle;
+}
 
 .dimmed circle { opacity: 0.1; }
 .dimmed text { opacity: 0.1; }
@@ -202,6 +231,8 @@ body {
   font-size: 12px; color: #c9d1d9; padding: 3px 0 3px 8px; cursor: pointer;
 }
 #detail-panel .child-list li:hover { color: #58a6ff; }
+#detail-panel .child-list a { color: #58a6ff; text-decoration: none; }
+#detail-panel .child-list a:hover { text-decoration: underline; }
 #detail-panel .child-type { font-size: 10px; color: #8b949e; margin-left: 4px; }
 
 #detail-panel .meta-item { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
@@ -230,8 +261,13 @@ body {
     <button class="filter-btn meta" onclick="showAll()">All</button>
     <button class="filter-btn meta" onclick="hideAll()">None</button>
   </div>
-  <button class="filter-btn meta" id="overlap-toggle" onclick="toggleOverlapEdges()">Overlaps: On</button>
   <div id="filter-list"></div>
+  <div class="sidebar-title" style="margin-top: 12px">Domains</div>
+  <div class="meta-row">
+    <button class="filter-btn meta" onclick="showAllDomains()">All</button>
+    <button class="filter-btn meta" onclick="hideAllDomains()">None</button>
+  </div>
+  <div id="domain-list"></div>
 </div>
 
 <div id="graph"></div>
@@ -269,11 +305,10 @@ const TYPE_LABELS = {
 const activeFilters = new Set(Object.keys(TYPE_COLORS));
 let selectedNode = null;
 let searchQuery = '';
-let showOverlapEdges = true;
 
 // Stats
 document.getElementById('stats').textContent =
-  data.stats.nodes + ' nodes \u00b7 ' + data.stats.edges + ' edges \u00b7 ' + (data.stats.overlaps || 0) + ' overlaps \u00b7 Generated ' + new Date(data.generated).toLocaleDateString();
+  data.stats.nodes + ' nodes \u00b7 ' + data.stats.edges + ' edges \u00b7 ' + domainNames.length + ' domains \u00b7 Generated ' + new Date(data.generated).toLocaleDateString();
 
 // Build filter buttons into sidebar
 const filterList = document.getElementById('filter-list');
@@ -307,6 +342,24 @@ for (const [type, color] of Object.entries(TYPE_COLORS)) {
   legend.appendChild(item);
 }
 
+// Build domain toggle buttons
+var domainList = document.getElementById('domain-list');
+domainNames.forEach(function(domain) {
+  var btn = document.createElement('button');
+  btn.className = 'filter-btn active';
+  var color = DOMAIN_COLORS[domain];
+  btn.style.setProperty('--type-color', color);
+  var dot = document.createElement('span');
+  dot.className = 'dot';
+  dot.style.background = color;
+  btn.appendChild(dot);
+  var count = domainMembers[domain].size;
+  btn.appendChild(document.createTextNode(DOMAIN_LABELS[domain] + ' (' + count + ')'));
+  btn.dataset.domain = domain;
+  btn.onclick = function() { toggleDomain(domain, btn); };
+  domainList.appendChild(btn);
+});
+
 // D3 Setup
 const sidebarWidth = 180;
 const width = window.innerWidth;
@@ -314,6 +367,10 @@ const height = window.innerHeight - 44;
 
 const svg = d3.select('#graph').append('svg').attr('width', width).attr('height', height);
 const g = svg.append('g');
+
+// Hull layer (drawn first = behind everything)
+const hullGroup = g.append('g').attr('class', 'hulls');
+const hullLabelGroup = g.append('g').attr('class', 'hull-labels');
 
 const zoomBehavior = d3.zoom()
   .scaleExtent([0.1, 4])
@@ -323,7 +380,37 @@ svg.call(zoomBehavior);
 
 // Graph data
 const graphNodes = data.nodes.map(function(n) { return Object.assign({}, n); });
-const graphLinks = data.edges.map(function(e) { return Object.assign({}, e); });
+const graphLinks = data.edges.filter(function(e) { return e.type !== 'overlaps-with'; })
+  .map(function(e) { return Object.assign({}, e); });
+
+// Build domain groups from overlap edges
+const domainMembers = {};  // domain -> Set of node IDs
+data.edges.forEach(function(e) {
+  if (e.type !== 'overlaps-with' || !e.meta || !e.meta.domains) return;
+  e.meta.domains.forEach(function(domain) {
+    if (!domainMembers[domain]) domainMembers[domain] = new Set();
+    domainMembers[domain].add(e.source);
+    domainMembers[domain].add(e.target);
+  });
+});
+
+const DOMAIN_COLORS = {};
+const DOMAIN_PALETTE = [
+  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+  '#DDA0DD', '#FF8C42', '#98D8C8', '#F7DC6F', '#BB8FCE',
+  '#85C1E9'
+];
+var domainNames = Object.keys(domainMembers).sort();
+domainNames.forEach(function(name, i) {
+  DOMAIN_COLORS[name] = DOMAIN_PALETTE[i % DOMAIN_PALETTE.length];
+});
+
+const DOMAIN_LABELS = {};
+domainNames.forEach(function(name) {
+  DOMAIN_LABELS[name] = name.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+});
+
+const activeDomains = new Set(domainNames);
 
 // Force simulation
 const simulation = d3.forceSimulation(graphNodes)
@@ -370,12 +457,82 @@ node.append('text')
 
 svg.on('click', function() { deselectAll(); closePanel(); });
 
+// Convex hull helper — takes [[x,y], ...], returns expanded hull path string
+function computeHullPath(points, padding) {
+  if (points.length < 2) return null;
+  if (points.length === 2) {
+    // Two-point "hull": draw a rounded rect between them
+    var dx = points[1][0] - points[0][0];
+    var dy = points[1][1] - points[0][1];
+    var len = Math.sqrt(dx * dx + dy * dy) || 1;
+    var nx = -dy / len * padding;
+    var ny = dx / len * padding;
+    return 'M' + (points[0][0] + nx) + ',' + (points[0][1] + ny) +
+      'L' + (points[1][0] + nx) + ',' + (points[1][1] + ny) +
+      'A' + padding + ',' + padding + ' 0 0,1 ' + (points[1][0] - nx) + ',' + (points[1][1] - ny) +
+      'L' + (points[0][0] - nx) + ',' + (points[0][1] - ny) +
+      'A' + padding + ',' + padding + ' 0 0,1 ' + (points[0][0] + nx) + ',' + (points[0][1] + ny) +
+      'Z';
+  }
+  var hull = d3.polygonHull(points);
+  if (!hull) return null;
+  // Expand hull outward by padding
+  var cx = d3.mean(hull, function(p) { return p[0]; });
+  var cy = d3.mean(hull, function(p) { return p[1]; });
+  var expanded = hull.map(function(p) {
+    var dx = p[0] - cx;
+    var dy = p[1] - cy;
+    var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    return [p[0] + dx / dist * padding, p[1] + dy / dist * padding];
+  });
+  return 'M' + expanded.map(function(p) { return p[0] + ',' + p[1]; }).join('L') + 'Z';
+}
+
+// Build node lookup for fast access
+var nodeById = {};
+graphNodes.forEach(function(n) { nodeById[n.id] = n; });
+
+function updateHulls() {
+  var hullData = [];
+  domainNames.forEach(function(domain) {
+    if (!activeDomains.has(domain)) return;
+    var points = [];
+    domainMembers[domain].forEach(function(id) {
+      var n = nodeById[id];
+      if (n && activeFilters.has(n.type)) points.push([n.x, n.y]);
+    });
+    if (points.length >= 2) {
+      hullData.push({ domain: domain, points: points, color: DOMAIN_COLORS[domain] });
+    }
+  });
+
+  var hulls = hullGroup.selectAll('path').data(hullData, function(d) { return d.domain; });
+  hulls.exit().remove();
+  hulls.enter().append('path')
+    .attr('class', 'domain-hull')
+    .merge(hulls)
+    .attr('fill', function(d) { return d.color; })
+    .attr('stroke', function(d) { return d.color; })
+    .attr('d', function(d) { return computeHullPath(d.points, 30); });
+
+  var labels = hullLabelGroup.selectAll('text').data(hullData, function(d) { return d.domain; });
+  labels.exit().remove();
+  labels.enter().append('text')
+    .attr('class', 'domain-label')
+    .merge(labels)
+    .attr('fill', function(d) { return d.color; })
+    .attr('x', function(d) { return d3.mean(d.points, function(p) { return p[0]; }); })
+    .attr('y', function(d) { return d3.min(d.points, function(p) { return p[1]; }) - 35; })
+    .text(function(d) { return DOMAIN_LABELS[d.domain]; });
+}
+
 simulation.on('tick', function() {
   link.attr('x1', function(d) { return d.source.x; })
     .attr('y1', function(d) { return d.source.y; })
     .attr('x2', function(d) { return d.target.x; })
     .attr('y2', function(d) { return d.target.y; });
   node.attr('transform', function(d) { return 'translate(' + d.x + ',' + d.y + ')'; });
+  updateHulls();
 });
 
 // --- Interaction ---
@@ -472,6 +629,38 @@ function showDetailPanel(d) {
       mi.appendChild(sp);
       content.appendChild(mi);
     });
+  }
+
+  // External links
+  var links = [];
+  if (d.meta && d.meta.repoUrl) {
+    links.push({ label: 'GitHub repo', url: d.meta.repoUrl });
+  }
+  if (d.type === 'hook-event' && d.meta && d.meta.docsUrl) {
+    links.push({ label: 'Claude Code hooks docs', url: d.meta.docsUrl });
+  }
+  if (links.length > 0) {
+    var linksTitle = document.createElement('div');
+    linksTitle.className = 'section-title';
+    linksTitle.textContent = 'Links';
+    content.appendChild(linksTitle);
+
+    var linksList = document.createElement('ul');
+    linksList.className = 'child-list';
+    links.forEach(function(item) {
+      var li = document.createElement('li');
+      li.style.borderLeft = '2px solid ' + color;
+      li.style.cursor = 'default';
+      var a = document.createElement('a');
+      a.href = item.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = item.label;
+      a.onclick = function(event) { event.stopPropagation(); };
+      li.appendChild(a);
+      linksList.appendChild(li);
+    });
+    content.appendChild(linksList);
   }
 
   // Children grouped by edge type
@@ -582,11 +771,22 @@ function hideAll() {
   applyFilters();
 }
 
-function toggleOverlapEdges() {
-  showOverlapEdges = !showOverlapEdges;
-  var btn = document.getElementById('overlap-toggle');
-  btn.textContent = 'Overlap Edges: ' + (showOverlapEdges ? 'On' : 'Off');
-  applyFilters();
+function toggleDomain(domain, btn) {
+  if (activeDomains.has(domain)) { activeDomains.delete(domain); btn.classList.remove('active'); }
+  else { activeDomains.add(domain); btn.classList.add('active'); }
+  updateHulls();
+}
+
+function showAllDomains() {
+  domainNames.forEach(function(d) { activeDomains.add(d); });
+  document.querySelectorAll('.filter-btn[data-domain]').forEach(function(b) { b.classList.add('active'); });
+  updateHulls();
+}
+
+function hideAllDomains() {
+  activeDomains.clear();
+  document.querySelectorAll('.filter-btn[data-domain]').forEach(function(b) { b.classList.remove('active'); });
+  updateHulls();
 }
 
 function applyFilters() {
@@ -596,12 +796,12 @@ function applyFilters() {
     return null;
   });
   link.style('display', function(l) {
-    if (!showOverlapEdges && l.type === 'overlaps-with') return 'none';
     var sn = graphNodes.find(function(n) { return n.id === getNodeId(l.source); });
     var tn = graphNodes.find(function(n) { return n.id === getNodeId(l.target); });
     if (!sn || !tn || !activeFilters.has(sn.type) || !activeFilters.has(tn.type)) return 'none';
     return null;
   });
+  updateHulls();
 }
 
 function onSearch(query) {
