@@ -304,6 +304,12 @@ body {
 .sprint-flow-arrow { pointer-events: none; }
 .gate-diamond { pointer-events: none; }
 
+/* Spotlight layer — on-demand bezier curves for tier-2 skill/agent connections */
+.spotlight-layer path {
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(69, 183, 209, 0.5));
+}
+
 </style>
 </head>
 <body>
@@ -598,6 +604,7 @@ simulation.on('tick', function() {
     .attr('y2', function(d) { return d.target.y; });
   node.attr('transform', function(d) { return 'translate(' + d.x + ',' + d.y + ')'; });
   updateHulls();
+  updateSpotlightPaths();
 });
 
 // --- Interaction ---
@@ -631,6 +638,7 @@ function deselectAll() {
   selectedNode = null;
   node.classed('highlighted', false).classed('dimmed', false);
   link.classed('highlighted', false).classed('dimmed', false);
+  spotlightGroup.selectAll('*').remove();
   if (sprintActive) {
     sprintNodeGroup.selectAll('.sprint-phase-node')
       .classed('highlighted', false).classed('dimmed', false);
@@ -810,13 +818,11 @@ function showDetailPanel(d) {
   }
 
   // Sprint phases this node participates in (if sprint is active)
-  if (sprintActive) {
+  if (sprintActive && nodeToPhases[d.id]) {
     var nodePhases = [];
-    Object.keys(PHASE_PLUGINS).forEach(function(phaseId) {
-      if (PHASE_PLUGINS[phaseId].indexOf(d.id) !== -1) {
-        var phase = SPRINT_PHASES.find(function(p) { return p.id === phaseId; });
-        if (phase) nodePhases.push(phase);
-      }
+    nodeToPhases[d.id].forEach(function(phaseId) {
+      var phase = SPRINT_PHASES.find(function(p) { return p.id === phaseId; });
+      if (phase) nodePhases.push(phase);
     });
     if (nodePhases.length > 0) {
       var spTitle = document.createElement('div');
@@ -835,6 +841,13 @@ function showDetailPanel(d) {
         ts.className = 'child-type';
         ts.textContent = phase.phase;
         li.appendChild(ts);
+        li.style.cursor = 'pointer';
+        li.onclick = (function(sprintNodeId) {
+          return function() {
+            var sn = nodeById[sprintNodeId];
+            if (sn) selectSprintNode(sn);
+          };
+        })('sprint-' + phase.id);
         spUl.appendChild(li);
       });
       content.appendChild(spUl);
@@ -1083,6 +1096,48 @@ var PHASE_PLUGINS = {
   'ship':           ['clavain', 'interlock']
 };
 
+// Fine-grained: which specific skills/agents/MCP servers each phase uses (tier 2 — on-demand spotlight, NOT force links)
+var PHASE_SKILLS = {
+  'brainstorm':    { skills: ['clavain:brainstorming'], agents: [], mcp: [] },
+  'strategize':    { skills: ['clavain:writing-plans'], agents: [], mcp: [] },
+  'write-plan':    { skills: ['clavain:writing-plans'], agents: [], mcp: [] },
+  'review-plan':   { skills: ['interflux:flux-drive', 'interpeer:interpeer'],
+                     agents: ['interflux:agent:fd-architecture', 'interflux:agent:fd-safety',
+                              'interflux:agent:fd-correctness', 'interflux:agent:fd-user-product',
+                              'interflux:agent:fd-quality', 'intersynth:agent:synthesize-review'],
+                     mcp: [] },
+  'execute':       { skills: ['clavain:executing-plans', 'interdev:working-with-claude-code',
+                              'intertest:test-driven-development'], agents: [], mcp: [] },
+  'test':          { skills: ['intertest:test-driven-development', 'intertest:verification-before-completion',
+                              'intertest:systematic-debugging'], agents: [], mcp: [] },
+  'quality-gates': { skills: ['interflux:flux-drive', 'intercheck:status', 'interpeer:interpeer'],
+                     agents: ['interflux:agent:fd-architecture', 'interflux:agent:fd-safety',
+                              'interflux:agent:fd-correctness', 'interflux:agent:fd-user-product',
+                              'interflux:agent:fd-quality', 'intersynth:agent:synthesize-review',
+                              'intercraft:agent:agent-native-reviewer'],
+                     mcp: [] },
+  'resolve':       { skills: ['interflux:flux-drive', 'clavain:code-review-discipline'], agents: [], mcp: [] },
+  'reflect':       { skills: ['interdoc:interdoc', 'clavain:engineering-docs'],
+                     agents: ['interfluence:agent:voice-analyzer'], mcp: [] },
+  'ship':          { skills: ['clavain:landing-a-change'], agents: [], mcp: [] }
+};
+
+// Reverse lookup: nodeId -> [phaseId, ...] (from both PHASE_PLUGINS and PHASE_SKILLS)
+var nodeToPhases = {};
+function addNodePhase(nodeId, phaseId) {
+  if (!nodeToPhases[nodeId]) nodeToPhases[nodeId] = [];
+  if (nodeToPhases[nodeId].indexOf(phaseId) === -1) nodeToPhases[nodeId].push(phaseId);
+}
+Object.keys(PHASE_PLUGINS).forEach(function(phaseId) {
+  PHASE_PLUGINS[phaseId].forEach(function(pid) { addNodePhase(pid, phaseId); });
+});
+Object.keys(PHASE_SKILLS).forEach(function(phaseId) {
+  var entry = PHASE_SKILLS[phaseId];
+  entry.skills.forEach(function(sid) { addNodePhase(sid, phaseId); });
+  entry.agents.forEach(function(aid) { addNodePhase(aid, phaseId); });
+  entry.mcp.forEach(function(mid) { addNodePhase(mid, phaseId); });
+});
+
 // Toggle state
 var ecosystemActive = true;
 var sprintActive = false;
@@ -1095,6 +1150,7 @@ var sprintLinks = [];
 // SVG layers for sprint-specific rendering
 var sprintFlowGroup = g.append('g').attr('class', 'sprint-flow-layer');
 var sprintNodeGroup = g.append('g').attr('class', 'sprint-node-layer');
+var spotlightGroup = g.append('g').attr('class', 'spotlight-layer');
 
 // Compute pinned positions for sprint phases — horizontal arc
 function computePhasePositions() {
@@ -1210,9 +1266,10 @@ function toggleLayer(layerName) {
 }
 
 function rebuildGraph() {
-  // Clear sprint-specific rendering
+  // Clear sprint-specific rendering + spotlight
   sprintNodeGroup.selectAll('*').remove();
   sprintFlowGroup.selectAll('*').remove();
+  spotlightGroup.selectAll('*').remove();
 
   // Remove old sprint nodes and links from arrays
   for (var i = graphNodes.length - 1; i >= 0; i--) {
@@ -1478,16 +1535,69 @@ function rebuildSprintLayer() {
   rebuildGraph();
 }
 
+// ── Spotlight layer — on-demand bezier curves for tier-2 connections ──
+
+function drawSpotlightConnections(sourceNode, targetIds) {
+  spotlightGroup.selectAll('*').remove();
+  targetIds.forEach(function(tid) {
+    var targetNode = nodeById[tid];
+    if (!targetNode) return;
+    var sx = sourceNode.x, sy = sourceNode.y;
+    var tx = targetNode.x, ty = targetNode.y;
+    var mx = (sx + tx) / 2;
+    var my = (sy + ty) / 2 - 40; // curve upward
+    spotlightGroup.append('path')
+      .attr('d', 'M' + sx + ',' + sy + ' Q' + mx + ',' + my + ' ' + tx + ',' + ty)
+      .attr('fill', 'none')
+      .attr('stroke', '#45B7D1')
+      .attr('stroke-width', 1.5)
+      .attr('stroke-dasharray', '6 3')
+      .attr('stroke-opacity', 0)
+      .attr('data-source', sourceNode.id)
+      .attr('data-target', tid)
+      .transition().duration(300)
+      .attr('stroke-opacity', 0.7);
+  });
+}
+
+function updateSpotlightPaths() {
+  var paths = spotlightGroup.selectAll('path');
+  if (paths.empty()) return;
+  paths.each(function() {
+    var el = d3.select(this);
+    var sid = el.attr('data-source');
+    var tid = el.attr('data-target');
+    var sn = nodeById[sid];
+    var tn = nodeById[tid];
+    if (!sn || !tn) return;
+    var mx = (sn.x + tn.x) / 2;
+    var my = (sn.y + tn.y) / 2 - 40;
+    el.attr('d', 'M' + sn.x + ',' + sn.y + ' Q' + mx + ',' + my + ' ' + tn.x + ',' + tn.y);
+  });
+}
+
 // ── Sprint node interactions ──
 
 function selectSprintNode(sn) {
   var phase = sn._phase;
   var connectedIds = new Set([sn.id]);
+  var spotlightTargets = [];
 
-  // Find participating ecosystem nodes
+  // Find participating ecosystem nodes (tier 1 — force links)
   if (ecosystemActive && PHASE_PLUGINS[phase.id]) {
     PHASE_PLUGINS[phase.id].forEach(function(pid) {
       if (nodeById[pid]) connectedIds.add(pid);
+    });
+  }
+
+  // Find tier-2 skill/agent/MCP nodes (spotlight, not force links)
+  if (ecosystemActive && PHASE_SKILLS[phase.id]) {
+    var entry = PHASE_SKILLS[phase.id];
+    entry.skills.concat(entry.agents).concat(entry.mcp).forEach(function(id) {
+      if (nodeById[id]) {
+        connectedIds.add(id);
+        spotlightTargets.push(id);
+      }
     });
   }
 
@@ -1499,19 +1609,29 @@ function selectSprintNode(sn) {
   // Highlight/dim ecosystem nodes
   node.classed('highlighted', function(n) { return connectedIds.has(n.id); });
   node.classed('dimmed', function(n) { return !connectedIds.has(n.id); });
+
+  // Highlight edges: light up participates-in edges AND provides-skill/provides-agent edges
+  // between highlighted plugins and their highlighted children
   link.classed('highlighted', function(l) {
     var sid = getNodeId(l.source), tid = getNodeId(l.target);
-    return sid === sn.id || tid === sn.id;
+    return connectedIds.has(sid) && connectedIds.has(tid);
   });
   link.classed('dimmed', function(l) {
     var sid = getNodeId(l.source), tid = getNodeId(l.target);
-    return sid !== sn.id && tid !== sn.id;
+    return !(connectedIds.has(sid) && connectedIds.has(tid));
   });
 
   // Highlight/dim sprint phase nodes
   sprintNodeGroup.selectAll('.sprint-phase-node')
     .classed('highlighted', function() { return connectedIds.has(d3.select(this).attr('data-id')); })
     .classed('dimmed', function() { return !connectedIds.has(d3.select(this).attr('data-id')); });
+
+  // Draw spotlight bezier curves to tier-2 nodes
+  if (spotlightTargets.length > 0) {
+    drawSpotlightConnections(sn, spotlightTargets);
+  } else {
+    spotlightGroup.selectAll('*').remove();
+  }
 
   showSprintDetail(phase);
 }
@@ -1587,11 +1707,11 @@ function showSprintDetail(phase) {
     content.appendChild(gateDesc);
   }
 
-  // Participating plugins section
+  // Orchestrating plugins (tier 1 — force-linked)
   if (PHASE_PLUGINS[phase.id] && PHASE_PLUGINS[phase.id].length > 0) {
     var plugTitle = document.createElement('div');
     plugTitle.className = 'section-title';
-    plugTitle.textContent = 'Participating Plugins';
+    plugTitle.textContent = 'Orchestrating Plugins';
     content.appendChild(plugTitle);
 
     var plugUl = document.createElement('ul');
@@ -1610,6 +1730,44 @@ function showSprintDetail(phase) {
       plugUl.appendChild(li);
     });
     content.appendChild(plugUl);
+  }
+
+  // Tier-2 fine-grained connections (skills, agents, MCP servers)
+  if (PHASE_SKILLS[phase.id]) {
+    var entry = PHASE_SKILLS[phase.id];
+    var sections = [
+      { label: 'Skills', ids: entry.skills, color: TYPE_COLORS['skill'] },
+      { label: 'Agents', ids: entry.agents, color: TYPE_COLORS['agent'] },
+      { label: 'MCP Servers', ids: entry.mcp, color: TYPE_COLORS['mcp-server'] }
+    ];
+    sections.forEach(function(sec) {
+      if (sec.ids.length === 0) return;
+      var secTitle = document.createElement('div');
+      secTitle.className = 'section-title';
+      secTitle.textContent = sec.label;
+      content.appendChild(secTitle);
+
+      var secUl = document.createElement('ul');
+      secUl.className = 'child-list';
+      sec.ids.forEach(function(nid) {
+        var sNode = nodeById[nid];
+        var li = document.createElement('li');
+        li.style.borderLeft = '2px solid ' + sec.color;
+        if (sNode) {
+          li.textContent = sNode.label + ' ';
+          var ts = document.createElement('span');
+          ts.className = 'child-type';
+          ts.textContent = TYPE_LABELS[sNode.type] || sNode.type;
+          li.appendChild(ts);
+          li.onclick = function() { navigateTo(nid); };
+        } else {
+          li.textContent = nid;
+          li.style.opacity = '0.5';
+        }
+        secUl.appendChild(li);
+      });
+      content.appendChild(secUl);
+    });
   }
 
   panel.classList.add('open');

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Regenerate the ecosystem diagram from local repos and push to gh-pages.
+# Uses git worktree so it never disturbs the main working tree.
 # Designed to be called from a git post-push hook or cron.
 set -euo pipefail
 
@@ -38,13 +39,14 @@ mv "$TMPHTML" "$CURRENT"
 # Update scan data for CI deploys
 echo "$DATA" > "$INTERCHART_DIR/data/scan.json"
 
-# Deploy to gh-pages
-cd "$INTERCHART_DIR"
-git checkout gh-pages 2>/dev/null
-cp "$CURRENT" index.html
-git add index.html
-git commit -m "chore: regenerate diagram ($NODE_COUNT nodes, $EDGE_COUNT edges)" 2>/dev/null || true
-git push origin gh-pages 2>/dev/null
-git checkout main 2>/dev/null
+# Deploy to gh-pages using a temporary worktree (never touches main working tree)
+WORKTREE_DIR=$(mktemp -d)
+trap 'git -C "$INTERCHART_DIR" worktree remove --force "$WORKTREE_DIR" 2>/dev/null; rm -rf "$WORKTREE_DIR"' EXIT
+
+git -C "$INTERCHART_DIR" worktree add --detach "$WORKTREE_DIR" gh-pages 2>/dev/null
+cp "$CURRENT" "$WORKTREE_DIR/index.html"
+git -C "$WORKTREE_DIR" add index.html
+git -C "$WORKTREE_DIR" commit -m "chore: regenerate diagram ($NODE_COUNT nodes, $EDGE_COUNT edges)" 2>/dev/null || { echo "interchart: no changes to deploy"; exit 0; }
+git -C "$WORKTREE_DIR" push origin gh-pages 2>/dev/null
 
 echo "interchart: deployed ($NODE_COUNT nodes, $EDGE_COUNT edges)"
