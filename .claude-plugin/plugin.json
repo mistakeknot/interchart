@@ -1,0 +1,19 @@
+{
+  "name": "interchart",
+  "version": "0.1.0",
+  "description": "Interactive ecosystem diagram — scans Interverse monorepo and generates a D3.js force graph showing all plugins, skills, MCP tools, hooks, and their relationships.",
+  "author": {
+    "name": "mistakeknot"
+  },
+  "license": "MIT",
+  "keywords": [
+    "visualization",
+    "ecosystem",
+    "diagram",
+    "d3",
+    "architecture"
+  ],
+  "skills": [
+    "./skills/interchart"
+  ]
+}
