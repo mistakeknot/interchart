@@ -342,24 +342,6 @@ for (const [type, color] of Object.entries(TYPE_COLORS)) {
   legend.appendChild(item);
 }
 
-// Build domain toggle buttons
-var domainList = document.getElementById('domain-list');
-domainNames.forEach(function(domain) {
-  var btn = document.createElement('button');
-  btn.className = 'filter-btn active';
-  var color = DOMAIN_COLORS[domain];
-  btn.style.setProperty('--type-color', color);
-  var dot = document.createElement('span');
-  dot.className = 'dot';
-  dot.style.background = color;
-  btn.appendChild(dot);
-  var count = domainMembers[domain].size;
-  btn.appendChild(document.createTextNode(DOMAIN_LABELS[domain] + ' (' + count + ')'));
-  btn.dataset.domain = domain;
-  btn.onclick = function() { toggleDomain(domain, btn); };
-  domainList.appendChild(btn);
-});
-
 // D3 Setup
 const sidebarWidth = 180;
 const width = window.innerWidth;
@@ -411,6 +393,24 @@ domainNames.forEach(function(name) {
 });
 
 const activeDomains = new Set(domainNames);
+
+// Build domain toggle buttons
+var domainList = document.getElementById('domain-list');
+domainNames.forEach(function(domain) {
+  var btn = document.createElement('button');
+  btn.className = 'filter-btn active';
+  var color = DOMAIN_COLORS[domain];
+  btn.style.setProperty('--type-color', color);
+  var dot = document.createElement('span');
+  dot.className = 'dot';
+  dot.style.background = color;
+  btn.appendChild(dot);
+  var count = domainMembers[domain].size;
+  btn.appendChild(document.createTextNode(DOMAIN_LABELS[domain] + ' (' + count + ')'));
+  btn.dataset.domain = domain;
+  btn.onclick = function() { toggleDomain(domain, btn); };
+  domainList.appendChild(btn);
+});
 
 // Force simulation
 const simulation = d3.forceSimulation(graphNodes)
