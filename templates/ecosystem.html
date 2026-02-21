@@ -606,6 +606,19 @@ simulation.on('tick', function() {
     .attr('x2', function(d) { return d.target.x; })
     .attr('y2', function(d) { return d.target.y; });
   node.attr('transform', function(d) { return 'translate(' + d.x + ',' + d.y + ')'; });
+  // Update sprint phase node positions (they live in a separate group)
+  var sprintNodeW = 160, sprintNodeH = 56;
+  sprintNodeGroup.selectAll('.sprint-phase-node').each(function() {
+    var el = d3.select(this);
+    var nodeId = el.attr('data-id');
+    var sn = nodeById[nodeId];
+    if (sn) el.attr('transform', 'translate(' + (sn.x - sprintNodeW / 2) + ',' + (sn.y - sprintNodeH / 2) + ')');
+  });
+  // Redraw flow arrows to follow sprint node positions
+  if (sprintActive) {
+    sprintFlowGroup.selectAll('*').remove();
+    drawSprintFlowArrows();
+  }
   updateHulls();
   updateSpotlightPaths();
 });
@@ -1162,11 +1175,11 @@ function computePhasePositions() {
   var cy = height * 0.5;
   var rx = width * 0.40;
   var ry = height * 0.40;
-  // 10 phases clockwise from left (π): Brainstorm at 9 o'clock, Execute at 3 o'clock
+  // 10 phases clockwise from top (12 o'clock): Brainstorm at top
   var n = SPRINT_PHASES.length;
   for (var i = 0; i < n; i++) {
-    var angle = Math.PI + (i / n) * 2 * Math.PI; // start at π (left), go clockwise
-    positions.push({ x: cx + rx * Math.cos(angle), y: cy - ry * Math.sin(angle) });
+    var angle = -Math.PI / 2 + (i / n) * 2 * Math.PI; // start at -π/2 (top), go clockwise
+    positions.push({ x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) });
   }
   return positions;
 }
@@ -1396,11 +1409,27 @@ function renderSprintNodes() {
       .attr('class', 'sprint-phase-node')
       .attr('data-id', sn.id)
       .attr('transform', 'translate(' + (sn.x - nodeW / 2) + ',' + (sn.y - nodeH / 2) + ')')
-      .style('cursor', 'pointer')
+      .style('cursor', 'grab')
       .on('click', function(event) {
         event.stopPropagation();
         selectSprintNode(sn);
-      });
+      })
+      .call(d3.drag()
+        .on('start', function(event) {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          sn.fx = sn.x; sn.fy = sn.y;
+          d3.select(this).style('cursor', 'grabbing');
+        })
+        .on('drag', function(event) {
+          sn.fx = event.x; sn.fy = event.y;
+          sn.x = event.x; sn.y = event.y;
+        })
+        .on('end', function(event) {
+          if (!event.active) simulation.alphaTarget(0);
+          // Keep pinned where user dropped it (don't clear fx/fy)
+          d3.select(this).style('cursor', 'grab');
+        })
+      );
 
     // Background rect
     gNode.append('rect')
