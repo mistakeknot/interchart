@@ -9,6 +9,57 @@ const ROOT = process.argv[2] || path.resolve(__dirname, '../../..');
 const nodes = [];
 const edges = [];
 const nodeIds = new Set();
+const edgeIds = new Set();
+
+const OVERLAP_DOMAIN_RULES = [
+  {
+    domain: 'analytics-observability',
+    weight: 1.2,
+    patterns: [/\banalytics?\b/i, /\btelemetry\b/i, /\bmetrics?\b/i, /\bbenchmark/i, /\bmonitoring\b/i, /\busage\b/i, /\bstatusline\b/i, /\bhealth\b/i]
+  },
+  {
+    domain: 'quality-review',
+    weight: 1.2,
+    patterns: [/\bquality\b/i, /\breview\b/i, /\baudit\b/i, /\bverification\b/i, /\bguard(s)?\b/i, /\btest(s|ing)?\b/i]
+  },
+  {
+    domain: 'docs-artifacts',
+    weight: 1.1,
+    patterns: [/\bdoc(s|umentation)?\b/i, /\broadmap\b/i, /\bprd\b/i, /\bartifact\b/i, /\bchangelog\b/i, /\bfreshness\b/i, /\bdrift\b/i, /\bmemory\b/i, /\bnotion\b/i]
+  },
+  {
+    domain: 'discovery-research',
+    weight: 1.1,
+    patterns: [/\bsearch\b/i, /\bdiscovery\b/i, /\bresearch\b/i, /\bembedding\b/i, /\bretrieval\b/i, /\bsemantic\b/i]
+  },
+  {
+    domain: 'phase-gates',
+    weight: 1.3,
+    patterns: [/\bphase(s)?\b/i, /\bgate(s|d|ing)?\b/i, /\bsprint\b/i, /\blifecycle\b/i]
+  },
+  {
+    domain: 'coordination-dispatch',
+    weight: 1.0,
+    patterns: [/\bcoordination\b/i, /\bdispatch(es|ed)?\b/i, /\breserv(e|ation|ing)\b/i, /\bconflict\b/i, /\bmessaging\b/i]
+  },
+  {
+    domain: 'design-product',
+    weight: 0.9,
+    patterns: [/\bdesign\b/i, /\bvisual\b/i, /\bui\b/i, /\bproduct\b/i]
+  },
+  {
+    domain: 'release-publish',
+    weight: 1.0,
+    patterns: [/\brelease\b/i, /\bpublish(ing)?\b/i, /\bversion\b/i, /\bmarketplace\b/i]
+  }
+];
+
+const FORCED_OVERLAP_GROUPS = [
+  { domain: 'analytics-quality-stack', boost: 1.1, ids: ['intercheck', 'interstat', 'tool-time'] },
+  { domain: 'doc-lifecycle-stack', boost: 0.9, ids: ['interwatch', 'interdoc', 'interpath', 'intermem', 'interkasten'] },
+  { domain: 'phase-gate-control', boost: 1.4, ids: ['interphase', 'intercore', 'clavain'] },
+  { domain: 'discovery-context-stack', boost: 0.8, ids: ['interflux', 'interject', 'intersearch', 'tldr-swinton', 'intermap'] }
+];
 
 function addNode(id, type, label, description, meta = {}) {
   if (nodeIds.has(id)) return;
@@ -16,9 +67,99 @@ function addNode(id, type, label, description, meta = {}) {
   nodes.push({ id, type, label, description: description || '', meta });
 }
 
-function addEdge(source, target, type) {
+function addEdge(source, target, type, meta = {}) {
   if (!nodeIds.has(source) || !nodeIds.has(target)) return;
-  edges.push({ source, target, type });
+  const key = `${source}->${target}:${type}`;
+  if (edgeIds.has(key)) return;
+  edgeIds.add(key);
+  const edge = { source, target, type };
+  if (meta && Object.keys(meta).length > 0) edge.meta = meta;
+  edges.push(edge);
+}
+
+function addDeferredEdge(source, target, type, meta = {}) {
+  const edge = { source, target, type, _deferred: true };
+  if (meta && Object.keys(meta).length > 0) edge.meta = meta;
+  edges.push(edge);
+}
+
+function buildOverlapText(node) {
+  const parts = [node.id, node.label, node.description];
+  if (node.meta && node.meta.path) parts.push(node.meta.path);
+  if (node.meta && node.meta.plugin) parts.push(node.meta.plugin);
+  return parts.filter(Boolean).join(' ').toLowerCase();
+}
+
+function inferOverlapDomains(node) {
+  const text = buildOverlapText(node);
+  const domains = new Map();
+  for (const rule of OVERLAP_DOMAIN_RULES) {
+    if (rule.patterns.some(re => re.test(text))) {
+      domains.set(rule.domain, rule.weight);
+    }
+  }
+  return domains;
+}
+
+function getForcedOverlapSignals(sourceId, targetId) {
+  const domains = [];
+  let boost = 0;
+  for (const group of FORCED_OVERLAP_GROUPS) {
+    if (group.ids.includes(sourceId) && group.ids.includes(targetId)) {
+      domains.push(group.domain);
+      boost += group.boost;
+    }
+  }
+  return { domains, boost };
+}
+
+function computeOverlapEdges() {
+  const candidates = nodes.filter(n => (
+    n.type === 'plugin' ||
+    n.type === 'hub' ||
+    n.type === 'kernel' ||
+    n.type === 'service' ||
+    n.type === 'sdk' ||
+    n.type === 'tui'
+  ));
+
+  const domainMap = new Map();
+  for (const node of candidates) {
+    domainMap.set(node.id, inferOverlapDomains(node));
+  }
+
+  for (let i = 0; i < candidates.length; i++) {
+    for (let j = i + 1; j < candidates.length; j++) {
+      const a = candidates[i];
+      const b = candidates[j];
+      const aDomains = domainMap.get(a.id);
+      const bDomains = domainMap.get(b.id);
+      const sharedDomains = [];
+      let score = 0;
+
+      for (const [domain, weight] of aDomains.entries()) {
+        if (bDomains.has(domain)) {
+          sharedDomains.push(domain);
+          score += Math.min(weight, bDomains.get(domain));
+        }
+      }
+
+      const forced = getForcedOverlapSignals(a.id, b.id);
+      const allDomains = Array.from(new Set(sharedDomains.concat(forced.domains)));
+      const totalScore = Number((score + forced.boost).toFixed(2));
+      const qualifies =
+        forced.domains.length > 0 ||
+        sharedDomains.length >= 2 ||
+        totalScore >= 2.4;
+
+      if (!qualifies || allDomains.length === 0) continue;
+
+      addEdge(a.id, b.id, 'overlaps-with', {
+        score: totalScore,
+        domains: allDomains
+      });
+    }
+  }
 }
 
 function readJson(filePath) {
@@ -157,7 +298,7 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
   if (manifest.description) {
     if (/companion\s+plugin\s+for\s+clavain/i.test(manifest.description)) {
       // Deferred — Clavain might not be added yet
-      edges.push({ source: manifest.name, target: 'clavain', type: 'companion-of', _deferred: true });
+      addDeferredEdge(manifest.name, 'clavain', 'companion-of');
     }
   }
 }
@@ -232,17 +373,38 @@ for (const node of nodes) {
   }
 }
 
-// 6. Resolve deferred companion edges
-const resolvedEdges = edges.filter(e => {
-  if (e._deferred) {
-    if (nodeIds.has(e.source) && nodeIds.has(e.target)) {
-      delete e._deferred;
-      return true;
-    }
-    return false;
-  }
-  return true;
-});
+// 6. Overlap edges (potential functional duplicates/adjacent capabilities)
+computeOverlapEdges();
+
+// 7. Resolve deferred edges and de-dupe
+const resolvedEdges = [];
+const resolvedEdgeIds = new Set();
+for (const edge of edges) {
+  if (edge._deferred && (!nodeIds.has(edge.source) || !nodeIds.has(edge.target))) continue;
+  const cleanEdge = Object.assign({}, edge);
+  delete cleanEdge._deferred;
+  const key = `${cleanEdge.source}->${cleanEdge.target}:${cleanEdge.type}`;
+  if (resolvedEdgeIds.has(key)) continue;
+  resolvedEdgeIds.add(key);
+  resolvedEdges.push(cleanEdge);
+}
+
+const nodeById = new Map(nodes.map(n => [n.id, n]));
+const overlaps = resolvedEdges
+  .filter(e => e.type === 'overlaps-with')
+  .map(e => {
+    const sourceNode = nodeById.get(e.source);
+    const targetNode = nodeById.get(e.target);
+    return {
+      source: e.source,
+      sourceLabel: sourceNode ? sourceNode.label : e.source,
+      target: e.target,
+      targetLabel: targetNode ? targetNode.label : e.target,
+      score: e.meta && typeof e.meta.score === 'number' ? e.meta.score : 0,
+      domains: e.meta && Array.isArray(e.meta.domains) ? e.meta.domains : []
+    };
+  })
+  .sort((a, b) => b.score - a.score || a.source.localeCompare(b.source));
 
 // Output
 const output = {
@@ -250,10 +412,12 @@ const output = {
   stats: {
     nodes: nodes.length,
     edges: resolvedEdges.length,
+    overlaps: overlaps.length,
     byType: {}
   },
   nodes,
-  edges: resolvedEdges
+  edges: resolvedEdges,
+  overlaps
 };
 
 // Compute stats by type

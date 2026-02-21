@@ -28,35 +28,84 @@ body {
   padding: 8px 16px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 12px;
+  height: 44px;
 }
 
 #toolbar .title {
   font-weight: 600;
   font-size: 14px;
   color: #f0f6fc;
-  margin-right: 12px;
   white-space: nowrap;
 }
 
 #toolbar .stats {
   font-size: 11px;
   color: #8b949e;
-  margin-right: 12px;
   white-space: nowrap;
+}
+
+#filter-sidebar {
+  position: fixed;
+  top: 44px;
+  left: 0;
+  width: 180px;
+  height: calc(100vh - 44px);
+  background: #161b22;
+  border-right: 1px solid #30363d;
+  z-index: 90;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#filter-sidebar .sidebar-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+#filter-sidebar .meta-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+#filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid #30363d;
+  padding-top: 8px;
 }
 
 .filter-btn {
   border: 1px solid #30363d;
   background: transparent;
   color: #8b949e;
-  padding: 3px 10px;
-  border-radius: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
   font-size: 11px;
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-btn .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .filter-btn.active {
@@ -71,11 +120,22 @@ body {
   font-weight: 600;
   border-color: #58a6ff;
   color: #58a6ff;
+  width: auto;
+  flex: 1;
+  text-align: center;
+  justify-content: center;
 }
 
 .filter-btn.meta:hover { background: rgba(88, 166, 255, 0.1); }
 
-#graph { width: 100vw; height: 100vh; padding-top: 44px; }
+#search-box {
+  border: 1px solid #30363d; background: #0d1117; color: #c9d1d9;
+  padding: 4px 10px; border-radius: 6px; font-size: 12px;
+  width: 160px; margin-left: auto;
+}
+#search-box:focus { outline: none; border-color: #58a6ff; }
+
+#graph { width: 100vw; height: 100vh; padding-top: 44px; padding-left: 180px; }
 #graph svg { width: 100%; height: 100%; }
 
 .node circle { cursor: pointer; transition: opacity 0.2s; }
@@ -89,6 +149,7 @@ body {
 .link.fires-hook { stroke: #E74C3C; stroke-dasharray: 2 2; }
 .link.companion-of { stroke: #F39C12; stroke-dasharray: 6 3; stroke-width: 2; }
 .link.depends-on { stroke: #1ABC9C; stroke-dasharray: 4 4; }
+.link.overlaps-with { stroke: #FFD166; stroke-dasharray: 1 4; stroke-width: 1.5; }
 .link.part-of { stroke: #30363d; }
 
 .dimmed circle { opacity: 0.1; }
@@ -146,15 +207,8 @@ body {
 #detail-panel .meta-item { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
 #detail-panel .meta-item span { color: #c9d1d9; }
 
-#search-box {
-  border: 1px solid #30363d; background: #0d1117; color: #c9d1d9;
-  padding: 4px 10px; border-radius: 6px; font-size: 12px;
-  width: 160px; margin-left: auto;
-}
-#search-box:focus { outline: none; border-color: #58a6ff; }
-
 .legend {
-  position: fixed; bottom: 12px; left: 12px;
+  position: fixed; bottom: 12px; left: 192px;
   background: rgba(22, 27, 34, 0.9); border: 1px solid #30363d;
   border-radius: 8px; padding: 10px 14px; font-size: 11px; z-index: 80;
 }
@@ -167,9 +221,17 @@ body {
 <div id="toolbar">
   <span class="title">Interverse Ecosystem</span>
   <span class="stats" id="stats"></span>
-  <button class="filter-btn meta" onclick="showAll()">All</button>
-  <button class="filter-btn meta" onclick="hideAll()">None</button>
   <input type="text" id="search-box" placeholder="Search nodes..." oninput="onSearch(this.value)">
+</div>
+
+<div id="filter-sidebar">
+  <div class="sidebar-title">Filters</div>
+  <div class="meta-row">
+    <button class="filter-btn meta" onclick="showAll()">All</button>
+    <button class="filter-btn meta" onclick="hideAll()">None</button>
+  </div>
+  <button class="filter-btn meta" id="overlap-toggle" onclick="toggleOverlapEdges()">Overlaps: On</button>
+  <div id="filter-list"></div>
 </div>
 
 <div id="graph"></div>
@@ -207,24 +269,28 @@ const TYPE_LABELS = {
 const activeFilters = new Set(Object.keys(TYPE_COLORS));
 let selectedNode = null;
 let searchQuery = '';
+let showOverlapEdges = true;
 
 // Stats
 document.getElementById('stats').textContent =
-  data.stats.nodes + ' nodes \u00b7 ' + data.stats.edges + ' edges \u00b7 Generated ' + new Date(data.generated).toLocaleDateString();
+  data.stats.nodes + ' nodes \u00b7 ' + data.stats.edges + ' edges \u00b7 ' + (data.stats.overlaps || 0) + ' overlaps \u00b7 Generated ' + new Date(data.generated).toLocaleDateString();
 
-// Build filter buttons
-const toolbar = document.getElementById('toolbar');
-const searchBox = document.getElementById('search-box');
+// Build filter buttons into sidebar
+const filterList = document.getElementById('filter-list');
 for (const [type, color] of Object.entries(TYPE_COLORS)) {
   const count = data.stats.byType[type] || 0;
   if (count === 0) continue;
   const btn = document.createElement('button');
   btn.className = 'filter-btn active';
   btn.style.setProperty('--type-color', color);
-  btn.textContent = TYPE_LABELS[type] + ' (' + count + ')';
+  const dot = document.createElement('span');
+  dot.className = 'dot';
+  dot.style.background = color;
+  btn.appendChild(dot);
+  btn.appendChild(document.createTextNode(TYPE_LABELS[type] + ' (' + count + ')'));
   btn.dataset.type = type;
   btn.onclick = function() { toggleFilter(type, btn); };
-  toolbar.insertBefore(btn, searchBox);
+  filterList.appendChild(btn);
 }
 
 // Build legend
@@ -242,6 +308,7 @@ for (const [type, color] of Object.entries(TYPE_COLORS)) {
 }
 
 // D3 Setup
+const sidebarWidth = 180;
 const width = window.innerWidth;
 const height = window.innerHeight - 44;
 
@@ -263,6 +330,7 @@ const simulation = d3.forceSimulation(graphNodes)
   .force('link', d3.forceLink(graphLinks).id(function(d) { return d.id; }).distance(function(d) {
     if (d.type === 'part-of') return 100;
     if (d.type === 'companion-of') return 120;
+    if (d.type === 'overlaps-with') return 90;
     if (d.type === 'provides-skill' || d.type === 'provides-agent') return 50;
     return 80;
   }))
@@ -271,7 +339,7 @@ const simulation = d3.forceSimulation(graphNodes)
     if (d.type === 'plugin' || d.type === 'kernel') return -200;
     return -60;
   }))
-  .force('center', d3.forceCenter(width / 2, height / 2))
+  .force('center', d3.forceCenter((width - sidebarWidth) / 2 + sidebarWidth, height / 2))
   .force('collision', d3.forceCollide().radius(function(d) { return (TYPE_SIZES[d.type] || 8) + 4; }));
 
 // Draw links
@@ -345,13 +413,26 @@ function showDetailPanel(d) {
   var children = [], parents = [];
   graphLinks.forEach(function(l) {
     var sid = getNodeId(l.source), tid = getNodeId(l.target);
-    if (sid === d.id && l.type !== 'part-of') {
-      var tn = graphNodes.find(function(n) { return n.id === tid; });
-      if (tn) children.push(Object.assign({edgeType: l.type}, tn));
+
+    if (l.type === 'part-of') return;
+
+    // Overlap is symmetric; show in one "Overlaps" section regardless of edge direction.
+    if (l.type === 'overlaps-with') {
+      if (sid === d.id || tid === d.id) {
+        var otherId = sid === d.id ? tid : sid;
+        var otherNode = graphNodes.find(function(n) { return n.id === otherId; });
+        if (otherNode) children.push(Object.assign({ edgeType: l.type, edgeMeta: l.meta || {} }, otherNode));
+      }
+      return;
     }
-    if (tid === d.id && l.type !== 'part-of') {
+
+    if (sid === d.id) {
+      var tn = graphNodes.find(function(n) { return n.id === tid; });
+      if (tn) children.push(Object.assign({ edgeType: l.type, edgeMeta: l.meta || {} }, tn));
+    }
+    if (tid === d.id) {
       var sn = graphNodes.find(function(n) { return n.id === sid; });
-      if (sn) parents.push(Object.assign({edgeType: l.type}, sn));
+      if (sn) parents.push(Object.assign({ edgeType: l.type, edgeMeta: l.meta || {} }, sn));
     }
   });
 
@@ -403,7 +484,8 @@ function showDetailPanel(d) {
 
     var sectionLabels = {
       'provides-skill': 'Skills', 'provides-agent': 'Agents', 'provides-mcp': 'MCP Servers',
-      'fires-hook': 'Hook Events', 'companion-of': 'Companions', 'depends-on': 'Dependencies'
+      'fires-hook': 'Hook Events', 'companion-of': 'Companions', 'depends-on': 'Dependencies',
+      'overlaps-with': 'Overlaps'
     };
 
     Object.keys(grouped).forEach(function(edgeType) {
@@ -420,7 +502,17 @@ function showDetailPanel(d) {
         li.textContent = item.label + ' ';
         var typeSpan = document.createElement('span');
         typeSpan.className = 'child-type';
-        typeSpan.textContent = TYPE_LABELS[item.type];
+        if (item.edgeType === 'overlaps-with') {
+          var overlapScore = item.edgeMeta && typeof item.edgeMeta.score === 'number'
+            ? item.edgeMeta.score.toFixed(2)
+            : 'n/a';
+          var overlapDomains = item.edgeMeta && Array.isArray(item.edgeMeta.domains) && item.edgeMeta.domains.length > 0
+            ? ' [' + item.edgeMeta.domains.join(', ') + ']'
+            : '';
+          typeSpan.textContent = TYPE_LABELS[item.type] + ' · score ' + overlapScore + overlapDomains;
+        } else {
+          typeSpan.textContent = TYPE_LABELS[item.type];
+        }
         li.appendChild(typeSpan);
         li.onclick = function() { navigateTo(item.id); };
         ul.appendChild(li);
@@ -490,6 +582,13 @@ function hideAll() {
   applyFilters();
 }
 
+function toggleOverlapEdges() {
+  showOverlapEdges = !showOverlapEdges;
+  var btn = document.getElementById('overlap-toggle');
+  btn.textContent = 'Overlap Edges: ' + (showOverlapEdges ? 'On' : 'Off');
+  applyFilters();
+}
+
 function applyFilters() {
   node.style('display', function(d) {
     if (!activeFilters.has(d.type)) return 'none';
@@ -497,6 +596,7 @@ function applyFilters() {
     return null;
   });
   link.style('display', function(l) {
+    if (!showOverlapEdges && l.type === 'overlaps-with') return 'none';
     var sn = graphNodes.find(function(n) { return n.id === getNodeId(l.source); });
     var tn = graphNodes.find(function(n) { return n.id === getNodeId(l.target); });
     if (!sn || !tn || !activeFilters.has(sn.type) || !activeFilters.has(tn.type)) return 'none';
@@ -531,12 +631,13 @@ function dragended(event, d) {
 // Zoom to fit after layout settles
 setTimeout(function() {
   var bounds = g.node().getBBox();
-  var scale = 0.8 / Math.max(bounds.width / width, bounds.height / height);
+  var graphWidth = width - sidebarWidth;
+  var scale = 0.8 / Math.max(bounds.width / graphWidth, bounds.height / height);
   var midX = bounds.x + bounds.width / 2;
   var midY = bounds.y + bounds.height / 2;
   svg.transition().duration(750).call(
     zoomBehavior.transform,
-    d3.zoomIdentity.translate(width / 2 - scale * midX, height / 2 - scale * midY).scale(scale)
+    d3.zoomIdentity.translate(graphWidth / 2 + sidebarWidth - scale * midX, height / 2 - scale * midY).scale(scale)
   );
 }, 2000);
 </script>
