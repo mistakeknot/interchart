@@ -179,23 +179,12 @@ The template uses inline `<script>` with `const`/`let` — these are NOT hoisted
 
 ## Deployment
 
-### Server-side cron (primary)
+### Agent-driven (primary)
+
+Agents regenerate the diagram as a final step after any change that adds, removes, or renames plugins, skills, agents, MCP servers, or hooks. This is documented in the Interverse root `AGENTS.md` under "Ecosystem Diagram (interchart)".
 
 ```bash
-# Installed in crontab:
-*/5 * * * * /root/projects/Interverse/plugins/interchart/scripts/watch-and-deploy.sh
-```
-
-**How it works:**
-1. `watch-and-deploy.sh` hashes all repo HEAD SHAs into a fingerprint
-2. Compares with `.last-scan-state`
-3. If changed → calls `regenerate-and-deploy.sh`
-4. `regenerate-and-deploy.sh` generates HTML, compares node count with existing file, deploys to `gh-pages` branch if different
-
-### Manual deploy
-
-```bash
-# Generate + deploy
+# Generate + deploy to gh-pages (safe — uses git worktree, never touches main)
 bash scripts/regenerate-and-deploy.sh /root/projects/Interverse
 
 # Generate only (no deploy)
@@ -266,7 +255,7 @@ node scripts/scan.js /root/projects/Interverse 2>/dev/null | \
 ## Gotchas
 
 - **Blank page = JS error**: The template runs as a single inline `<script>` block. Any `ReferenceError` kills the entire script silently — the page renders as blank with no console visible to most users. Always verify variable ordering after edits.
-- **`regenerate-and-deploy.sh` switches branches**: It checks out `gh-pages`, copies the file, commits, pushes, then checks out `main`. If you have uncommitted changes on `main`, stash them first.
+- **`regenerate-and-deploy.sh` uses a worktree**: It creates a temporary git worktree for `gh-pages`, copies the file, commits, pushes, and cleans up — it never touches the `main` working tree.
 - **Scanner skips itself**: `interchart` is excluded from scanning (line 339 in `scan.js`) to avoid a self-referential node.
 - **D3 CDN dependency**: The generated HTML loads `https://d3js.org/d3.v7.min.js` — it will not render offline.
 - **`box-sizing: border-box`**: The template uses this globally. The sidebar overlays the graph (no `padding-left`) so the SVG content area is the full `100vw`.
