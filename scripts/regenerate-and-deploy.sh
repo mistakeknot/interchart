@@ -35,6 +35,9 @@ fi
 mkdir -p "$(dirname "$CURRENT")"
 mv "$TMPHTML" "$CURRENT"
 
+# Update scan data for CI deploys
+echo "$DATA" > "$INTERCHART_DIR/data/scan.json"
+
 # Deploy to gh-pages
 cd "$INTERCHART_DIR"
 git checkout gh-pages 2>/dev/null
