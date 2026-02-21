@@ -49,27 +49,29 @@ jobs:
 
       - name: Generate diagram
         run: |
-          node scripts/scan.js workspace > /tmp/scan.json
-          NODE_COUNT=$(node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.nodes))" < /tmp/scan.json)
-          EDGE_COUNT=$(node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.edges))" < /tmp/scan.json)
+          mkdir -p dist
+          node scripts/scan.js workspace > dist/scan.json
+          NODE_COUNT=$(node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.nodes))" < dist/scan.json)
+          EDGE_COUNT=$(node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.edges))" < dist/scan.json)
           echo "Scanned: ${NODE_COUNT} nodes, ${EDGE_COUNT} edges"
 
           node -e "
             const fs = require('fs');
             const tmpl = fs.readFileSync('templates/ecosystem.html', 'utf8');
-            const data = fs.readFileSync('/tmp/scan.json', 'utf8');
-            fs.writeFileSync('/tmp/index.html', tmpl.replace('/*DATA_PLACEHOLDER*/', data.trim()));
+            const data = fs.readFileSync('dist/scan.json', 'utf8');
+            fs.writeFileSync('dist/index.html', tmpl.replace('/*DATA_PLACEHOLDER*/', data.trim()));
           "
-          echo "Generated /tmp/index.html ($(wc -c < /tmp/index.html) bytes)"
+          rm dist/scan.json
+          echo "Generated dist/index.html ($(wc -c < dist/index.html) bytes)"
 
       - name: Check for changes
         id: diff
         run: |
           if git show origin/gh-pages:index.html > /tmp/old.html 2>/dev/null; then
             OLD_NODES=$(grep -o '"nodes":[0-9]*' /tmp/old.html | head -1)
-            NEW_NODES=$(grep -o '"nodes":[0-9]*' /tmp/index.html | head -1)
+            NEW_NODES=$(grep -o '"nodes":[0-9]*' dist/index.html | head -1)
             OLD_EDGES=$(grep -o '"edges":[0-9]*' /tmp/old.html | head -1)
-            NEW_EDGES=$(grep -o '"edges":[0-9]*' /tmp/index.html | head -1)
+            NEW_EDGES=$(grep -o '"edges":[0-9]*' dist/index.html | head -1)
             if [ "$OLD_NODES" = "$NEW_NODES" ] && [ "$OLD_EDGES" = "$NEW_EDGES" ]; then
               echo "No structural changes (same node/edge counts)"
               echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -88,6 +90,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: /tmp
+          publish_dir: dist
           keep_files: false
-          include_files: index.html
