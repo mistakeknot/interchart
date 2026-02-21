@@ -91,10 +91,9 @@ To add a domain: add a rule to `OVERLAP_DOMAIN_RULES` in `scan.js` or a group to
 ### UI Layout
 
 - **Toolbar** (top, 44px): Title, stats, search box
-- **Filter sidebar** (left, 180px): Type filters with colored dots + domain hull toggles
-- **Graph area** (center): D3.js force-directed SVG
+- **Filter sidebar** (left, 240px, overlay): Type filters with colored dots + domain hull toggles. Starts collapsed; toggle with hamburger button. Overlays the graph (no layout shift).
+- **Graph area** (center): D3.js force-directed SVG (full viewport width)
 - **Detail panel** (right, slides in): Node metadata, relationships, external links
-- **Legend** (bottom-left): Node type color key
 
 ### Interactions
 
@@ -219,6 +218,6 @@ node scripts/scan.js /root/projects/Interverse 2>/dev/null | \
 - **`regenerate-and-deploy.sh` switches branches**: It checks out `gh-pages`, copies the file, commits, pushes, then checks out `main`. If you have uncommitted changes on `main`, stash them first.
 - **Scanner skips itself**: `interchart` is excluded from scanning (line 339 in `scan.js`) to avoid a self-referential node.
 - **D3 CDN dependency**: The generated HTML loads `https://d3js.org/d3.v7.min.js` — it will not render offline.
-- **`box-sizing: border-box`**: The template uses this globally. The `#graph` div has `padding-left: 180px` for the sidebar — the SVG content area is `100vw - 180px`, not `100vw`.
+- **`box-sizing: border-box`**: The template uses this globally. The sidebar overlays the graph (no `padding-left`) so the SVG content area is the full `100vw`.
 - **Convex hull edge case**: `d3.polygonHull()` requires 3+ non-collinear points. Two-point domains use a custom rounded-rectangle path. Single-point domains are skipped.
 - **gh-pages branch isolation**: The `gh-pages` branch has only `index.html` and `.nojekyll`. Never merge it into `main` or vice versa.
