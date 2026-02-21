@@ -238,13 +238,6 @@ body {
 #detail-panel .meta-item { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
 #detail-panel .meta-item span { color: #c9d1d9; }
 
-.legend {
-  position: fixed; bottom: 12px; left: 192px;
-  background: rgba(22, 27, 34, 0.9); border: 1px solid #30363d;
-  border-radius: 8px; padding: 10px 14px; font-size: 11px; z-index: 80;
-}
-.legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
-.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -277,7 +270,6 @@ body {
   <div id="panel-content"></div>
 </div>
 
-<div class="legend" id="legend"></div>
 
 <script>
 // DATA_PLACEHOLDER is replaced by the generator with scanned JSON
@@ -324,20 +316,6 @@ for (const [type, color] of Object.entries(TYPE_COLORS)) {
   btn.dataset.type = type;
   btn.onclick = function() { toggleFilter(type, btn); };
   filterList.appendChild(btn);
-}
-
-// Build legend
-const legend = document.getElementById('legend');
-for (const [type, color] of Object.entries(TYPE_COLORS)) {
-  if (!(data.stats.byType[type] > 0)) continue;
-  const item = document.createElement('div');
-  item.className = 'legend-item';
-  const dot = document.createElement('div');
-  dot.className = 'legend-dot';
-  dot.style.background = color;
-  item.appendChild(dot);
-  item.appendChild(document.createTextNode(TYPE_LABELS[type]));
-  legend.appendChild(item);
 }
 
 // D3 Setup
