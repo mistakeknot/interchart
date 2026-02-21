@@ -1,6 +1,6 @@
 # interchart
 
-Interactive ecosystem diagram generator. Scans Interverse monorepo and generates a D3.js force graph.
+Interactive ecosystem diagram generator for Interverse. See `AGENTS.md` for architecture, data model, and troubleshooting.
 
 ## Quick Commands
 
@@ -8,20 +8,19 @@ Interactive ecosystem diagram generator. Scans Interverse monorepo and generates
 # Generate diagram
 bash scripts/generate.sh /root/projects/Interverse
 
-# Run scanner only (JSON to stdout)
+# Scanner only (JSON to stdout)
 node scripts/scan.js /root/projects/Interverse
 
-# Test locally
-claude --plugin-dir /root/projects/Interverse/plugins/interchart
-
-# Validate structure
-ls skills/*/SKILL.md | wc -l          # Should be 1
-python3 -c "import json; json.load(open('.claude-plugin/plugin.json'))"
+# Deploy to GitHub Pages
+bash scripts/regenerate-and-deploy.sh /root/projects/Interverse
 ```
 
 ## Design Decisions (Do Not Re-Ask)
 
 - Static scanning only — no MCP servers, no runtime dependencies
-- D3.js v7 force graph — self-contained HTML with CDN link
-- Node.js scanner — reads plugin.json, skills, hooks across monorepo
+- D3.js v7 force graph — self-contained HTML, CDN-loaded D3
+- Node.js scanner — reads plugin.json, SKILL.md, hooks.json across monorepo
 - Output: single HTML file at `docs/diagrams/ecosystem.html`
+- Overlaps shown as convex hull domain overlays, not edges
+- Server-side cron (every 5 min) — no GitHub Actions for regeneration
+- Template variables must be defined before use (no hoisting for `const`/`let`)
