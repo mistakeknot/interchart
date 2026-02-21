@@ -1,0 +1,93 @@
+name: Regenerate Ecosystem Diagram
+
+on:
+  schedule:
+    # Every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout interchart
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Assemble monorepo tree
+        run: |
+          mkdir -p workspace/plugins workspace/hub workspace/services workspace/sdk workspace/Interforge
+
+          # Clone all plugin repos in parallel
+          plugins=(
+            intercheck intercraft interdev interdoc interfluence interflux
+            interform interject interkasten interleave interlens interline
+            interlock intermap intermem intermux internext interpath
+            interpeer interphase interpub intersearch interserve interslack
+            interstat intersynth intertest interwatch tldr-swinton tool-time
+            tuivision
+          )
+          for p in "${plugins[@]}"; do
+            git clone --depth 1 --single-branch "https://github.com/mistakeknot/${p}.git" "workspace/plugins/${p}" &
+          done
+
+          # Clone hub, services
+          git clone --depth 1 --single-branch https://github.com/mistakeknot/Clavain.git workspace/hub/clavain &
+          git clone --depth 1 --single-branch https://github.com/mistakeknot/intermute.git workspace/services/intermute &
+
+          # Wait for all clones to finish
+          wait
+
+          echo "Assembled $(ls workspace/plugins | wc -l) plugins + hub + services"
+
+      - name: Generate diagram
+        run: |
+          node scripts/scan.js workspace > /tmp/scan.json
+          NODE_COUNT=$(node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.nodes))" < /tmp/scan.json)
+          EDGE_COUNT=$(node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.edges))" < /tmp/scan.json)
+          echo "Scanned: ${NODE_COUNT} nodes, ${EDGE_COUNT} edges"
+
+          node -e "
+            const fs = require('fs');
+            const tmpl = fs.readFileSync('templates/ecosystem.html', 'utf8');
+            const data = fs.readFileSync('/tmp/scan.json', 'utf8');
+            fs.writeFileSync('/tmp/index.html', tmpl.replace('/*DATA_PLACEHOLDER*/', data.trim()));
+          "
+          echo "Generated /tmp/index.html ($(wc -c < /tmp/index.html) bytes)"
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git show origin/gh-pages:index.html > /tmp/old.html 2>/dev/null; then
+            OLD_NODES=$(grep -o '"nodes":[0-9]*' /tmp/old.html | head -1)
+            NEW_NODES=$(grep -o '"nodes":[0-9]*' /tmp/index.html | head -1)
+            OLD_EDGES=$(grep -o '"edges":[0-9]*' /tmp/old.html | head -1)
+            NEW_EDGES=$(grep -o '"edges":[0-9]*' /tmp/index.html | head -1)
+            if [ "$OLD_NODES" = "$NEW_NODES" ] && [ "$OLD_EDGES" = "$NEW_EDGES" ]; then
+              echo "No structural changes (same node/edge counts)"
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "Changes: nodes $OLD_NODES -> $NEW_NODES, edges $OLD_EDGES -> $NEW_EDGES"
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "No previous version — first deploy"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to gh-pages
+        if: steps.diff.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: /tmp
+          keep_files: false
+          include_files: index.html
