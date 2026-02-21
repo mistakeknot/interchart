@@ -21,31 +21,71 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Assemble monorepo tree
+      - name: Discover repos
+        id: discover
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p workspace/plugins workspace/hub workspace/services workspace/sdk workspace/Interforge
+          # Fetch all public repos for mistakeknot (paginate)
+          REPOS=$(gh api --paginate '/users/mistakeknot/repos?per_page=100&type=public' --jq '.[].name' | sort)
+          echo "Found $(echo "$REPOS" | wc -l) repos total"
 
-          # Clone all plugin repos in parallel
-          plugins=(
-            intercheck intercraft interdev interdoc interfluence interflux
-            interform interject interkasten interleave interlens interline
-            interlock intermap intermem intermux internext interpath
-            interpeer interphase interpub intersearch interserve interslack
-            interstat intersynth intertest interwatch tldr-swinton tool-time
-            tuivision
-          )
-          for p in "${plugins[@]}"; do
-            git clone --depth 1 --single-branch "https://github.com/mistakeknot/${p}.git" "workspace/plugins/${p}" &
+          # Classify repos into monorepo locations
+          PLUGINS=""
+          HUB=""
+          SERVICES=""
+          SKIP="Interverse interchart"
+
+          for repo in $REPOS; do
+            # Skip non-ecosystem repos
+            case "$repo" in
+              Interverse|interchart) continue ;;
+            esac
+
+            # Known fixed mappings
+            case "$repo" in
+              Clavain)   HUB="$repo"; continue ;;
+              intermute) SERVICES="$repo"; continue ;;
+            esac
+
+            # Anything starting with inter* or known plugin names → plugin
+            case "$repo" in
+              inter*|tldr-swinton|tool-time|tuivision)
+                PLUGINS="${PLUGINS} ${repo}"
+                ;;
+            esac
           done
 
-          # Clone hub, services
-          git clone --depth 1 --single-branch https://github.com/mistakeknot/Clavain.git workspace/hub/clavain &
-          git clone --depth 1 --single-branch https://github.com/mistakeknot/intermute.git workspace/services/intermute &
+          echo "Plugins:${PLUGINS}"
+          echo "Hub: ${HUB}"
+          echo "Services: ${SERVICES}"
+          echo "plugins=${PLUGINS}" >> "$GITHUB_OUTPUT"
+          echo "hub=${HUB}" >> "$GITHUB_OUTPUT"
+          echo "services=${SERVICES}" >> "$GITHUB_OUTPUT"
 
-          # Wait for all clones to finish
+      - name: Assemble monorepo tree
+        run: |
+          mkdir -p workspace/plugins workspace/hub workspace/services workspace/Interforge
+
+          # Clone all discovered plugins in parallel
+          for p in ${{ steps.discover.outputs.plugins }}; do
+            git clone --depth 1 --single-branch "https://github.com/mistakeknot/${p}.git" "workspace/plugins/${p}" 2>/dev/null &
+          done
+
+          # Clone hub
+          if [ -n "${{ steps.discover.outputs.hub }}" ]; then
+            git clone --depth 1 --single-branch "https://github.com/mistakeknot/${{ steps.discover.outputs.hub }}.git" workspace/hub/clavain 2>/dev/null &
+          fi
+
+          # Clone services
+          if [ -n "${{ steps.discover.outputs.services }}" ]; then
+            git clone --depth 1 --single-branch "https://github.com/mistakeknot/${{ steps.discover.outputs.services }}.git" workspace/services/intermute 2>/dev/null &
+          fi
+
           wait
 
-          echo "Assembled $(ls workspace/plugins | wc -l) plugins + hub + services"
+          PLUGIN_COUNT=$(ls workspace/plugins 2>/dev/null | wc -l)
+          echo "Assembled ${PLUGIN_COUNT} plugins + hub + services"
 
       - name: Generate diagram
         run: |
