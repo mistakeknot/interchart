@@ -184,17 +184,17 @@ body {
 <script>
 // DATA_PLACEHOLDER is replaced by the generator with scanned JSON
 const data = {
-  "generated": "2026-02-21T02:09:16.373Z",
+  "generated": "2026-02-21T03:24:42.695Z",
   "stats": {
-    "nodes": 121,
-    "edges": 143,
+    "nodes": 96,
+    "edges": 112,
     "byType": {
       "monorepo": 1,
-      "plugin": 31,
-      "skill": 46,
+      "plugin": 22,
+      "skill": 35,
+      "agent": 19,
+      "mcp-server": 9,
       "hook-event": 5,
-      "agent": 21,
-      "mcp-server": 12,
       "hub": 1,
       "kernel": 1,
       "service": 1,
@@ -208,33 +208,6 @@ const data = {
       "type": "monorepo",
       "label": "Interverse",
       "description": "Monorepo for the inter-module ecosystem",
-      "meta": {}
-    },
-    {
-      "id": "intercheck",
-      "type": "plugin",
-      "label": "intercheck",
-      "description": "Code quality guards and session health monitoring",
-      "meta": {
-        "version": "0.1.6",
-        "path": "plugins/intercheck"
-      }
-    },
-    {
-      "id": "intercheck:status",
-      "type": "skill",
-      "label": "status",
-      "description": "",
-      "meta": {
-        "plugin": "intercheck",
-        "path": "plugins/intercheck/skills/status"
-      }
-    },
-    {
-      "id": "hook:PostToolUse",
-      "type": "hook-event",
-      "label": "PostToolUse",
-      "description": "Hook event: PostToolUse",
       "meta": {}
     },
     {
@@ -390,6 +363,13 @@ const data = {
         "type": "stdio",
         "command": "node"
       }
+    },
+    {
+      "id": "hook:PostToolUse",
+      "type": "hook-event",
+      "label": "PostToolUse",
+      "description": "Hook event: PostToolUse",
+      "meta": {}
     },
     {
       "id": "interflux",
@@ -673,65 +653,6 @@ const data = {
       }
     },
     {
-      "id": "interkasten",
-      "type": "plugin",
-      "label": "interkasten",
-      "description": "Living bridge between your projects folder and Notion — bidirectional sync with adaptive AI documentation and pagent workflow automation",
-      "meta": {
-        "version": "0.4.3",
-        "path": "plugins/interkasten",
-        "commandCount": 2
-      }
-    },
-    {
-      "id": "interkasten:layout",
-      "type": "skill",
-      "label": "layout",
-      "description": "",
-      "meta": {
-        "plugin": "interkasten",
-        "path": "plugins/interkasten/skills/layout"
-      }
-    },
-    {
-      "id": "interkasten:onboard",
-      "type": "skill",
-      "label": "onboard",
-      "description": "",
-      "meta": {
-        "plugin": "interkasten",
-        "path": "plugins/interkasten/skills/onboard"
-      }
-    },
-    {
-      "id": "interkasten:doctor",
-      "type": "skill",
-      "label": "doctor",
-      "description": "",
-      "meta": {
-        "plugin": "interkasten",
-        "path": "plugins/interkasten/skills/doctor"
-      }
-    },
-    {
-      "id": "mcp:interkasten:interkasten",
-      "type": "mcp-server",
-      "label": "interkasten",
-      "description": "MCP server: stdio",
-      "meta": {
-        "plugin": "interkasten",
-        "type": "stdio",
-        "command": "bash"
-      }
-    },
-    {
-      "id": "hook:Stop",
-      "type": "hook-event",
-      "label": "Stop",
-      "description": "Hook event: Stop",
-      "meta": {}
-    },
-    {
       "id": "interleave",
       "type": "plugin",
       "label": "interleave",
@@ -811,35 +732,11 @@ const data = {
       "meta": {}
     },
     {
-      "id": "intermap",
-      "type": "plugin",
-      "label": "intermap",
-      "description": "Project-level code mapping: project registry, call graphs, architecture analysis, agent overlay. MCP server with 6 tools.",
-      "meta": {
-        "version": "0.1.3",
-        "path": "plugins/intermap"
-      }
-    },
-    {
-      "id": "intermap:skills",
-      "type": "skill",
-      "label": "skills",
-      "description": "",
-      "meta": {
-        "plugin": "intermap",
-        "path": "plugins/intermap/skills"
-      }
-    },
-    {
-      "id": "mcp:intermap:intermap",
-      "type": "mcp-server",
-      "label": "intermap",
-      "description": "MCP server: stdio",
-      "meta": {
-        "plugin": "intermap",
-        "type": "stdio",
-        "command": "${CLAUDE_PLUGIN_ROOT}/bin/launch-mcp.sh"
-      }
+      "id": "hook:Stop",
+      "type": "hook-event",
+      "label": "Stop",
+      "description": "Hook event: Stop",
+      "meta": {}
     },
     {
       "id": "intermem",
@@ -859,37 +756,6 @@ const data = {
       "meta": {
         "plugin": "intermem",
         "path": "plugins/intermem/skills/synthesize"
-      }
-    },
-    {
-      "id": "intermux",
-      "type": "plugin",
-      "label": "intermux",
-      "description": "Agent activity visibility -- tmux monitoring, activity feeds, health detection. Enriches intermute with live context.",
-      "meta": {
-        "version": "0.1.1",
-        "path": "plugins/intermux"
-      }
-    },
-    {
-      "id": "intermux:status",
-      "type": "skill",
-      "label": "status",
-      "description": "",
-      "meta": {
-        "plugin": "intermux",
-        "path": "plugins/intermux/skills/status"
-      }
-    },
-    {
-      "id": "mcp:intermux:intermux",
-      "type": "mcp-server",
-      "label": "intermux",
-      "description": "MCP server: stdio",
-      "meta": {
-        "plugin": "intermux",
-        "type": "stdio",
-        "command": "${CLAUDE_PLUGIN_ROOT}/bin/launch-mcp.sh"
       }
     },
     {
@@ -923,26 +789,6 @@ const data = {
       }
     },
     {
-      "id": "interpeer",
-      "type": "plugin",
-      "label": "interpeer",
-      "description": "Cross-AI peer review — quick (Claude↔Codex), deep (Oracle), council (multi-model), mine (disagreement extraction).",
-      "meta": {
-        "version": "0.1.0",
-        "path": "plugins/interpeer"
-      }
-    },
-    {
-      "id": "interpeer:interpeer",
-      "type": "skill",
-      "label": "interpeer",
-      "description": "Cross-AI peer review with escalation modes — quick (Claude↔Codex), deep (reviewed Oracle query, formerly prompterpeer), council (multi-model synthesis, formerly winterpeer), mine (disagreement extraction, formerly splinterpeer). Auto-detects host agent.",
-      "meta": {
-        "plugin": "interpeer",
-        "path": "plugins/interpeer/skills/interpeer"
-      }
-    },
-    {
       "id": "interphase",
       "type": "plugin",
       "label": "interphase",
@@ -961,16 +807,6 @@ const data = {
         "version": "0.1.2",
         "path": "plugins/interpub",
         "commandCount": 1
-      }
-    },
-    {
-      "id": "intersearch",
-      "type": "plugin",
-      "label": "intersearch",
-      "description": "Shared embedding and search infrastructure for the Interverse ecosystem — sentence-transformer embeddings and Exa web search.",
-      "meta": {
-        "version": "0.1.1",
-        "path": "plugins/intersearch"
       }
     },
     {
@@ -1012,103 +848,6 @@ const data = {
       "meta": {
         "plugin": "interslack",
         "path": "plugins/interslack/skills/slack-messaging"
-      }
-    },
-    {
-      "id": "interstat",
-      "type": "plugin",
-      "label": "interstat",
-      "description": "Token efficiency benchmarking for agent workflows",
-      "meta": {
-        "version": "0.2.3",
-        "path": "plugins/interstat"
-      }
-    },
-    {
-      "id": "interstat:skills",
-      "type": "skill",
-      "label": "skills",
-      "description": "",
-      "meta": {
-        "plugin": "interstat",
-        "path": "plugins/interstat/skills"
-      }
-    },
-    {
-      "id": "hook:SessionEnd",
-      "type": "hook-event",
-      "label": "SessionEnd",
-      "description": "Hook event: SessionEnd",
-      "meta": {}
-    },
-    {
-      "id": "intersynth",
-      "type": "plugin",
-      "label": "intersynth",
-      "description": "Multi-agent synthesis engine — collects findings from parallel review/research agents, deduplicates, writes verdicts, produces compact summaries. Keeps agent output out of the host context.",
-      "meta": {
-        "version": "0.1.2",
-        "path": "plugins/intersynth"
-      }
-    },
-    {
-      "id": "intersynth:agent:synthesize-review",
-      "type": "agent",
-      "label": "synthesize-review",
-      "description": "",
-      "meta": {
-        "plugin": "intersynth",
-        "path": "./agents/synthesize-review.md"
-      }
-    },
-    {
-      "id": "intersynth:agent:synthesize-research",
-      "type": "agent",
-      "label": "synthesize-research",
-      "description": "",
-      "meta": {
-        "plugin": "intersynth",
-        "path": "./agents/synthesize-research.md"
-      }
-    },
-    {
-      "id": "intertest",
-      "type": "plugin",
-      "label": "intertest",
-      "description": "Engineering quality disciplines — systematic debugging, test-driven development, and verification gates.",
-      "meta": {
-        "version": "0.1.1",
-        "path": "plugins/intertest"
-      }
-    },
-    {
-      "id": "intertest:systematic-debugging",
-      "type": "skill",
-      "label": "systematic-debugging",
-      "description": "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes",
-      "meta": {
-        "plugin": "intertest",
-        "path": "plugins/intertest/skills/systematic-debugging"
-      }
-    },
-    {
-      "id": "intertest:test-driven-development",
-      "type": "skill",
-      "label": "test-driven-development",
-      "description": "Use when implementing any feature or bugfix, before writing implementation code",
-      "meta": {
-        "plugin": "intertest",
-        "path": "plugins/intertest/skills/test-driven-development"
-      }
-    },
-    {
-      "id": "intertest:verification-before-completion",
-      "type": "skill",
-      "label": "verification-before-completion",
-      "description": "Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always",
-      "meta": {
-        "plugin": "intertest",
-        "path": "plugins/intertest/skills/verification-before-completion"
       }
     },
     {
@@ -1192,6 +931,13 @@ const data = {
         "version": "0.3.5",
         "path": "plugins/tool-time"
       }
+    },
+    {
+      "id": "hook:SessionEnd",
+      "type": "hook-event",
+      "label": "SessionEnd",
+      "description": "Hook event: SessionEnd",
+      "meta": {}
     },
     {
       "id": "tuivision",
@@ -1412,16 +1158,6 @@ const data = {
   ],
   "edges": [
     {
-      "source": "intercheck",
-      "target": "intercheck:status",
-      "type": "provides-skill"
-    },
-    {
-      "source": "intercheck",
-      "target": "hook:PostToolUse",
-      "type": "fires-hook"
-    },
-    {
       "source": "intercraft",
       "target": "intercraft:agent-native-architecture",
       "type": "provides-skill"
@@ -1617,36 +1353,6 @@ const data = {
       "type": "fires-hook"
     },
     {
-      "source": "interkasten",
-      "target": "interkasten:layout",
-      "type": "provides-skill"
-    },
-    {
-      "source": "interkasten",
-      "target": "interkasten:onboard",
-      "type": "provides-skill"
-    },
-    {
-      "source": "interkasten",
-      "target": "interkasten:doctor",
-      "type": "provides-skill"
-    },
-    {
-      "source": "interkasten",
-      "target": "mcp:interkasten:interkasten",
-      "type": "provides-mcp"
-    },
-    {
-      "source": "interkasten",
-      "target": "hook:SessionStart",
-      "type": "fires-hook"
-    },
-    {
-      "source": "interkasten",
-      "target": "hook:Stop",
-      "type": "fires-hook"
-    },
-    {
       "source": "interleave",
       "target": "interleave:interleave",
       "type": "provides-skill"
@@ -1682,34 +1388,9 @@ const data = {
       "type": "companion-of"
     },
     {
-      "source": "intermap",
-      "target": "intermap:skills",
-      "type": "provides-skill"
-    },
-    {
-      "source": "intermap",
-      "target": "mcp:intermap:intermap",
-      "type": "provides-mcp"
-    },
-    {
       "source": "intermem",
       "target": "intermem:synthesize",
       "type": "provides-skill"
-    },
-    {
-      "source": "intermux",
-      "target": "intermux:status",
-      "type": "provides-skill"
-    },
-    {
-      "source": "intermux",
-      "target": "mcp:intermux:intermux",
-      "type": "provides-mcp"
-    },
-    {
-      "source": "intermux",
-      "target": "hook:SessionStart",
-      "type": "fires-hook"
     },
     {
       "source": "internext",
@@ -1720,11 +1401,6 @@ const data = {
       "source": "interpath",
       "target": "clavain",
       "type": "companion-of"
-    },
-    {
-      "source": "interpeer",
-      "target": "interpeer:interpeer",
-      "type": "provides-skill"
     },
     {
       "source": "interphase",
@@ -1744,46 +1420,6 @@ const data = {
     {
       "source": "interslack",
       "target": "interslack:slack-messaging",
-      "type": "provides-skill"
-    },
-    {
-      "source": "interstat",
-      "target": "interstat:skills",
-      "type": "provides-skill"
-    },
-    {
-      "source": "interstat",
-      "target": "hook:PostToolUse",
-      "type": "fires-hook"
-    },
-    {
-      "source": "interstat",
-      "target": "hook:SessionEnd",
-      "type": "fires-hook"
-    },
-    {
-      "source": "intersynth",
-      "target": "intersynth:agent:synthesize-review",
-      "type": "provides-agent"
-    },
-    {
-      "source": "intersynth",
-      "target": "intersynth:agent:synthesize-research",
-      "type": "provides-agent"
-    },
-    {
-      "source": "intertest",
-      "target": "intertest:systematic-debugging",
-      "type": "provides-skill"
-    },
-    {
-      "source": "intertest",
-      "target": "intertest:test-driven-development",
-      "type": "provides-skill"
-    },
-    {
-      "source": "intertest",
-      "target": "intertest:verification-before-completion",
       "type": "provides-skill"
     },
     {
@@ -1972,11 +1608,6 @@ const data = {
       "type": "depends-on"
     },
     {
-      "source": "intercheck",
-      "target": "interverse",
-      "type": "part-of"
-    },
-    {
       "source": "intercraft",
       "target": "interverse",
       "type": "part-of"
@@ -2012,11 +1643,6 @@ const data = {
       "type": "part-of"
     },
     {
-      "source": "interkasten",
-      "target": "interverse",
-      "type": "part-of"
-    },
-    {
       "source": "interleave",
       "target": "interverse",
       "type": "part-of"
@@ -2037,17 +1663,7 @@ const data = {
       "type": "part-of"
     },
     {
-      "source": "intermap",
-      "target": "interverse",
-      "type": "part-of"
-    },
-    {
       "source": "intermem",
-      "target": "interverse",
-      "type": "part-of"
-    },
-    {
-      "source": "intermux",
       "target": "interverse",
       "type": "part-of"
     },
@@ -2062,11 +1678,6 @@ const data = {
       "type": "part-of"
     },
     {
-      "source": "interpeer",
-      "target": "interverse",
-      "type": "part-of"
-    },
-    {
       "source": "interphase",
       "target": "interverse",
       "type": "part-of"
@@ -2077,32 +1688,12 @@ const data = {
       "type": "part-of"
     },
     {
-      "source": "intersearch",
-      "target": "interverse",
-      "type": "part-of"
-    },
-    {
       "source": "interserve",
       "target": "interverse",
       "type": "part-of"
     },
     {
       "source": "interslack",
-      "target": "interverse",
-      "type": "part-of"
-    },
-    {
-      "source": "interstat",
-      "target": "interverse",
-      "type": "part-of"
-    },
-    {
-      "source": "intersynth",
-      "target": "interverse",
-      "type": "part-of"
-    },
-    {
-      "source": "intertest",
       "target": "interverse",
       "type": "part-of"
     },
