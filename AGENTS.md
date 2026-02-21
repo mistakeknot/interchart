@@ -88,22 +88,65 @@ To add a domain: add a rule to `OVERLAP_DOMAIN_RULES` in `scan.js` or a group to
 
 ## Visualization (ecosystem.html)
 
+### Tabbed Architecture
+
+The app has two tabs, selectable via pill buttons in the toolbar:
+
+| Tab | Content | Data Source |
+|-----|---------|-------------|
+| **Ecosystem** (default) | D3.js force-directed graph of all Interverse modules | Dynamic — scanned JSON via `/*DATA_PLACEHOLDER*/` |
+| **Sprint Workflow** | Flow diagram of Clavain's 10-step sprint pipeline | Static — hardcoded `SPRINT_PHASES` array |
+
+**Tab switching** (`switchTab()`):
+- Toggles `.active` class on tab buttons and `#tab-ecosystem` / `#tab-sprint` content divs
+- Hides ecosystem-specific toolbar elements (search, sidebar toggle, stats) when on Sprint tab
+- **Pauses D3 simulation** (`simulation.stop()`) when leaving Ecosystem to save CPU
+- **Resumes simulation** when returning to Ecosystem
+- Collapses sidebar and closes detail panel when switching away
+- Lazy-initializes sprint diagram on first view (`sprintInitialized` flag)
+
 ### UI Layout
 
-- **Toolbar** (top, 44px): Title, stats, search box
-- **Filter sidebar** (left, 240px, overlay): Type filters with colored dots + domain hull toggles. Starts collapsed; toggle with hamburger button. Overlays the graph (no layout shift).
-- **Graph area** (center): D3.js force-directed SVG (full viewport width)
-- **Detail panel** (right, slides in): Node metadata, relationships, external links
+- **Toolbar** (top, 44px): Sidebar toggle, "Interverse" title, tab bar, stats, search box
+- **Tab: Ecosystem**
+  - **Filter sidebar** (left, 240px, overlay): Type filters with colored dots + domain hull toggles. Starts collapsed; toggle with hamburger button.
+  - **Graph area** (center): D3.js force-directed SVG (full viewport width)
+- **Tab: Sprint Workflow**
+  - **Sprint container** (full viewport): SVG with U-shaped flow diagram, 10 step nodes
+- **Detail panel** (right, slides in, shared): Shows node metadata for both tabs
+
+### Sprint Workflow Diagram
+
+**Layout**: Two rows of 5 steps in a U-shape:
+```
+[1 Brainstorm] → [2 Strategize] → [3 Write Plan] → [4 Review Plan] → [5 Execute]
+                                                                          ↓
+[10 Ship] ← [9 Reflect] ← [8 Resolve] ← [7 Quality Gates] ← [6 Test]
+```
+
+**Visual elements**:
+- Rounded rect nodes with step number, label, phase name, and artifact hint
+- Blue arrows between consecutive steps
+- Dashed orange curved arrow: skip path (Brainstorm → Write Plan for trivial tasks)
+- Gate diamonds on arrows: red = hard gate (blocking), orange = soft gate (advisory)
+- Zoom/pan via `d3.zoom()`
+- Auto zoom-to-fit on init
+- Click node → detail panel with command, artifact, gate info
+
+**Phase colors**: ideation=#F39C12, planning=#3498DB, building=#2ECC71, quality=#E74C3C, learning=#9B59B6, shipping=#1ABC9C
+
+**Sprint data**: `var SPRINT_PHASES` — 10-element array, each with `{id, step, label, phase, command, description, artifact, gate}`. Fully static — no scanning needed.
 
 ### Interactions
 
-- **Click node**: Highlight node + neighbors, dim everything else, open detail panel
+- **Click node** (Ecosystem): Highlight node + neighbors, dim everything else, open detail panel
+- **Click sprint node**: Open detail panel with step info, command, artifact, gate
 - **Click background**: Deselect all, close panel
-- **Search**: Filter + highlight matching nodes by name/ID
+- **Search** (Ecosystem only): Filter + highlight matching nodes by name/ID
 - **Type filters**: Show/hide node types (sidebar checkboxes)
 - **Domain toggles**: Show/hide convex hull overlays per domain
-- **Drag**: Reposition nodes (force simulation continues)
-- **Zoom/pan**: Mouse wheel + drag on background
+- **Drag** (Ecosystem): Reposition nodes (force simulation continues)
+- **Zoom/pan**: Mouse wheel + drag on background (both tabs)
 - **Detail panel links**: Click to navigate to connected nodes; external links to GitHub repos
 
 ### Template Variable Ordering
@@ -122,9 +165,13 @@ The template uses inline `<script>` with `const`/`let` — these are NOT hoisted
 9. D3 setup, simulation, node/link rendering
 10. Hull computation (reads domainMembers, nodeById)
 11. Interaction handlers (functions — hoisted)
+12. switchTab(), SPRINT_PHASES, PHASE_COLORS (tab + sprint — uses var, safe at end)
+13. initSprintDiagram(), showSprintDetail() (sprint rendering — lazy init)
 ```
 
 **Critical:** Moving code blocks out of this order will cause `ReferenceError` and a blank page with no visible error to the user.
+
+**Sprint code safety:** All sprint code uses `var` and function declarations (hoisted) rather than `const`/`let`, and lives at the end of the `<script>` block to avoid ordering issues with the ecosystem code above it.
 
 ## Deployment
 
