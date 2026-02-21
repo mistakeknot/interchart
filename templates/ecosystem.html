@@ -187,6 +187,8 @@ body {
 }
 .domain-hull:hover { fill-opacity: 0.14; stroke-opacity: 0.5; }
 .domain-hull.hidden { fill-opacity: 0; stroke-opacity: 0; }
+.hulls-dimmed .domain-hull { fill-opacity: 0.03; stroke-opacity: 0.12; }
+.hulls-dimmed .domain-label { fill-opacity: 0.15; }
 
 .domain-label {
   font-size: 9px;
@@ -295,7 +297,8 @@ body {
 .link.participates-in {
   stroke: #45B7D1;
   stroke-dasharray: 4 3;
-  stroke-opacity: 0.2;
+  stroke-opacity: 0.35;
+  stroke-width: 1.5;
 }
 .link.participates-in.highlighted { stroke-opacity: 0.8; stroke-width: 2; }
 .link.participates-in.dimmed { stroke-opacity: 0.03; }
@@ -479,7 +482,7 @@ domainNames.forEach(function(domain) {
 // Force simulation
 var simulation = d3.forceSimulation(graphNodes)
   .force('link', d3.forceLink(graphLinks).id(function(d) { return d.id; }).distance(function(d) {
-    if (d.type === 'participates-in') return 200;
+    if (d.type === 'participates-in') return 280;
     if (d.type === 'part-of') return 100;
     if (d.type === 'companion-of') return 120;
     if (d.type === 'overlaps-with') return 90;
@@ -487,14 +490,14 @@ var simulation = d3.forceSimulation(graphNodes)
     return 80;
   }))
   .force('charge', d3.forceManyBody().strength(function(d) {
-    if (d.type === 'sprint-phase') return -500;
+    if (d.type === 'sprint-phase') return -800;
     if (d.type === 'monorepo' || d.type === 'hub') return -400;
     if (d.type === 'plugin' || d.type === 'kernel') return -200;
     return -60;
   }))
-  .force('center', d3.forceCenter(width / 2, height / 2))
+  .force('center', d3.forceCenter(width / 2, height / 2).strength(0.05))
   .force('collision', d3.forceCollide().radius(function(d) {
-    if (d.type === 'sprint-phase') return 90;
+    if (d.type === 'sprint-phase') return 120;
     return (TYPE_SIZES[d.type] || 8) + 4;
   }));
 
@@ -1152,28 +1155,18 @@ var sprintFlowGroup = g.append('g').attr('class', 'sprint-flow-layer');
 var sprintNodeGroup = g.append('g').attr('class', 'sprint-node-layer');
 var spotlightGroup = g.append('g').attr('class', 'spotlight-layer');
 
-// Compute pinned positions for sprint phases — horizontal arc
+// Compute pinned positions for sprint phases — elliptical ring around ecosystem
 function computePhasePositions() {
   var positions = [];
-  var arcW = width * 0.7;
-  var startX = width * 0.15;
-  var topY = height * 0.12;
-  var botY = height * 0.45;
-  var arcCurve = 30; // slight vertical curve
-
-  // Top row: steps 1-5 (left to right)
-  for (var i = 0; i < 5; i++) {
-    var t = i / 4;
-    var x = startX + t * arcW;
-    var y = topY + Math.sin(t * Math.PI) * arcCurve;
-    positions.push({ x: x, y: y });
-  }
-  // Bottom row: steps 6-10 (right to left)
-  for (var i = 0; i < 5; i++) {
-    var t = i / 4;
-    var x = startX + arcW - t * arcW;
-    var y = botY + Math.sin(t * Math.PI) * arcCurve;
-    positions.push({ x: x, y: y });
+  var cx = width * 0.5;
+  var cy = height * 0.5;
+  var rx = width * 0.40;
+  var ry = height * 0.40;
+  // 10 phases clockwise from left (π): Brainstorm at 9 o'clock, Execute at 3 o'clock
+  var n = SPRINT_PHASES.length;
+  for (var i = 0; i < n; i++) {
+    var angle = Math.PI + (i / n) * 2 * Math.PI; // start at π (left), go clockwise
+    positions.push({ x: cx + rx * Math.cos(angle), y: cy - ry * Math.sin(angle) });
   }
   return positions;
 }
@@ -1270,6 +1263,10 @@ function rebuildGraph() {
   sprintNodeGroup.selectAll('*').remove();
   sprintFlowGroup.selectAll('*').remove();
   spotlightGroup.selectAll('*').remove();
+
+  // Dim domain hulls when sprint is active to reduce visual noise
+  hullGroup.classed('hulls-dimmed', sprintActive);
+  hullLabelGroup.classed('hulls-dimmed', sprintActive);
 
   // Remove old sprint nodes and links from arrays
   for (var i = graphNodes.length - 1; i >= 0; i--) {
@@ -1507,24 +1504,23 @@ function drawSprintFlowArrows() {
     }
   }
 
-  // Skip path: Brainstorm → Write Plan
+  // Skip path: Brainstorm → Write Plan (curves inward toward center)
   var skipFrom = posById['brainstorm'];
   var skipTo = posById['write-plan'];
   if (skipFrom && skipTo) {
-    var skipMidY = Math.min(skipFrom.y, skipTo.y) - 80;
+    var skipMidX = (skipFrom.x + skipTo.x) / 2 + (width * 0.5 - (skipFrom.x + skipTo.x) / 2) * 0.5;
+    var skipMidY = (skipFrom.y + skipTo.y) / 2 + (height * 0.5 - (skipFrom.y + skipTo.y) / 2) * 0.5;
     sprintFlowGroup.append('path')
       .attr('class', 'sprint-flow-arrow')
-      .attr('d', 'M' + skipFrom.x + ',' + (skipFrom.y - nodeH / 2) +
-        ' C' + skipFrom.x + ',' + skipMidY +
-        ' ' + skipTo.x + ',' + skipMidY +
-        ' ' + skipTo.x + ',' + (skipTo.y - nodeH / 2))
+      .attr('d', 'M' + skipFrom.x + ',' + skipFrom.y +
+        ' Q' + skipMidX + ',' + skipMidY +
+        ' ' + skipTo.x + ',' + skipTo.y)
       .attr('fill', 'none').attr('stroke', '#F39C12').attr('stroke-width', 2)
       .attr('stroke-dasharray', '6 3')
       .attr('marker-end', 'url(#sprint-skip-arrow)');
 
     sprintFlowGroup.append('text')
-      .attr('x', (skipFrom.x + skipTo.x) / 2)
-      .attr('y', skipMidY - 6)
+      .attr('x', skipMidX).attr('y', skipMidY - 10)
       .attr('text-anchor', 'middle')
       .attr('fill', '#F39C12').attr('font-size', '10px')
       .text('skip (trivial tasks)');
