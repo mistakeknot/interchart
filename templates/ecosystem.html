@@ -306,9 +306,7 @@ const activeFilters = new Set(Object.keys(TYPE_COLORS));
 let selectedNode = null;
 let searchQuery = '';
 
-// Stats
-document.getElementById('stats').textContent =
-  data.stats.nodes + ' nodes \u00b7 ' + data.stats.edges + ' edges \u00b7 ' + domainNames.length + ' domains \u00b7 Generated ' + new Date(data.generated).toLocaleDateString();
+// Stats (updated after domain extraction below)
 
 // Build filter buttons into sidebar
 const filterList = document.getElementById('filter-list');
@@ -393,6 +391,10 @@ domainNames.forEach(function(name) {
 });
 
 const activeDomains = new Set(domainNames);
+
+// Stats
+document.getElementById('stats').textContent =
+  data.stats.nodes + ' nodes \u00b7 ' + data.stats.edges + ' edges \u00b7 ' + domainNames.length + ' domains \u00b7 Generated ' + new Date(data.generated).toLocaleDateString();
 
 // Build domain toggle buttons
 var domainList = document.getElementById('domain-list');
