@@ -43,7 +43,8 @@ echo "$DATA" > "$INTERCHART_DIR/data/scan.json"
 WORKTREE_DIR=$(mktemp -d)
 trap 'git -C "$INTERCHART_DIR" worktree remove --force "$WORKTREE_DIR" 2>/dev/null; rm -rf "$WORKTREE_DIR"' EXIT
 
-git -C "$INTERCHART_DIR" worktree add --detach "$WORKTREE_DIR" gh-pages 2>/dev/null
+git -C "$INTERCHART_DIR" fetch origin gh-pages 2>/dev/null
+git -C "$INTERCHART_DIR" worktree add --detach "$WORKTREE_DIR" origin/gh-pages 2>/dev/null
 cp "$CURRENT" "$WORKTREE_DIR/index.html"
 git -C "$WORKTREE_DIR" add index.html
 git -C "$WORKTREE_DIR" commit -m "chore: regenerate diagram ($NODE_COUNT nodes, $EDGE_COUNT edges)" 2>/dev/null || { echo "interchart: no changes to deploy"; exit 0; }
