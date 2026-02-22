@@ -1,5 +1,5 @@
 {
-  "generated": "2026-02-22T19:53:40.213Z",
+  "generated": "2026-02-21T09:16:08.227Z",
   "stats": {
     "nodes": 124,
     "edges": 186,
@@ -785,7 +785,7 @@
       "label": "intermux",
       "description": "Agent activity visibility -- tmux monitoring, activity feeds, health detection. Enriches intermute with live context.",
       "meta": {
-        "version": "0.1.2",
+        "version": "0.1.1",
         "path": "plugins/intermux",
         "repoUrl": "https://github.com/mistakeknot/intermux"
       }
@@ -874,7 +874,7 @@
       "label": "interphase",
       "description": "Phase tracking, gate validation, and work discovery for the Beads issue tracker. Companion plugin for Clavain — adds lifecycle state management on top of the core beads plugin.",
       "meta": {
-        "version": "0.3.3",
+        "version": "0.3.2",
         "path": "plugins/interphase",
         "repoUrl": "https://github.com/mistakeknot/interphase"
       }
@@ -1153,8 +1153,8 @@
       "label": "clavain",
       "description": "Self-improving agent rig — codifies product and engineering discipline into composable workflows from brainstorm to ship. Compounds knowledge, generates domain agents, and monitors its own docs. Orchestrates Claude, Codex, and GPT-5.2 Pro through 15 skills, 4 agents, 52 commands, 12 hooks. Companions: interphase, interline, interflux, interpath, interwatch, interslack, interform, intercraft, interdev, interpeer, intertest.",
       "meta": {
-        "version": "0.6.60",
-        "path": "hub/clavain",
+        "version": "0.6.59",
+        "path": "os/clavain",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1165,7 +1165,7 @@
       "description": "Freeform brainstorming mode — loads collaborative dialogue style (one question at a time, multiple choice, incremental design). Use for open-ended exploration without structured phases. For a guided workflow with repo research, use /brainstorm instead.",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/brainstorming",
+        "path": "os/clavain/skills/brainstorming",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1176,7 +1176,7 @@
       "description": "Use when requesting or receiving code review — covers dispatching reviewer subagents, handling feedback with technical rigor, and avoiding performative agreement",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/code-review-discipline",
+        "path": "os/clavain/skills/code-review-discipline",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1187,7 +1187,7 @@
       "description": "Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/dispatching-parallel-agents",
+        "path": "os/clavain/skills/dispatching-parallel-agents",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1198,7 +1198,7 @@
       "description": "Use when capturing a solved problem as categorized documentation with YAML frontmatter for fast lookup",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/engineering-docs",
+        "path": "os/clavain/skills/engineering-docs",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1209,7 +1209,7 @@
       "description": "Use when you have a written implementation plan to execute in a separate session with review checkpoints",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/executing-plans",
+        "path": "os/clavain/skills/executing-plans",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1220,7 +1220,7 @@
       "description": "This skill should be used when managing the file-based todo tracking system in the todos/ directory. It provides workflows for creating todos, managing status and dependencies, conducting triage, and integrating with slash commands and code review processes.",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/file-todos",
+        "path": "os/clavain/skills/file-todos",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1231,7 +1231,7 @@
       "description": "Show discipline analytics — defect escape rate, override rate, cost metrics, and agent scorecard",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/galiana",
+        "path": "os/clavain/skills/galiana",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1242,7 +1242,7 @@
       "description": "Dispatch tasks to Codex CLI agents — single megaprompt for one task, parallel delegation for many. Includes structured debate triggers and Oracle escalation.",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/interserve",
+        "path": "os/clavain/skills/interserve",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1253,7 +1253,7 @@
       "description": "Use when implementation is complete and all tests pass — guides the disciplined process of verifying, documenting, and landing a change on trunk",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/landing-a-change",
+        "path": "os/clavain/skills/landing-a-change",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1264,7 +1264,7 @@
       "description": "Manage thematic work lanes — discover, create, tag beads, show velocity and starvation scores",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/lane",
+        "path": "os/clavain/skills/lane",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1275,7 +1275,7 @@
       "description": "Use when performing significant refactoring — guides a disciplined process that leverages duplication detection, characterization tests, staged execution, and continuous simplicity review",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/refactor-safely",
+        "path": "os/clavain/skills/refactor-safely",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1286,7 +1286,7 @@
       "description": "Use when executing implementation plans with independent tasks in the current session",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/subagent-driven-development",
+        "path": "os/clavain/skills/subagent-driven-development",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1297,7 +1297,7 @@
       "description": "Use when checking for updates from upstream tool repos (beads, oracle, superpowers, compound-engineering) or when the /clavain:upstream-sync command is invoked",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/upstream-sync",
+        "path": "os/clavain/skills/upstream-sync",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1308,7 +1308,7 @@
       "description": "Use when starting any conversation - establishes how to find and use skills, agents, and commands, requiring Skill tool invocation before ANY response including clarifying questions",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/using-clavain",
+        "path": "os/clavain/skills/using-clavain",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1319,7 +1319,7 @@
       "description": "Use when you need to run interactive CLI tools (vim, git rebase -i, Python REPL, etc.) that require real-time input/output - provides tmux-based approach for controlling interactive sessions through detached sessions and send-keys",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/using-tmux-for-interactive-commands",
+        "path": "os/clavain/skills/using-tmux-for-interactive-commands",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },
@@ -1330,7 +1330,7 @@
       "description": "Use when you have a spec or requirements for a multi-step task, before touching code",
       "meta": {
         "plugin": "clavain",
-        "path": "hub/clavain/skills/writing-plans",
+        "path": "os/clavain/skills/writing-plans",
         "repoUrl": "https://github.com/mistakeknot/Clavain"
       }
     },

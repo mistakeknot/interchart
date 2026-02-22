@@ -385,18 +385,18 @@ const TYPE_COLORS = {
   'plugin': '#4A90D9', 'skill': '#50C878', 'agent': '#FF8C42',
   'mcp-server': '#9B59B6', 'hook-event': '#E74C3C', 'hub': '#F39C12',
   'kernel': '#1ABC9C', 'service': '#E74C3C', 'sdk': '#95A5A6',
-  'tui': '#E91E63', 'monorepo': '#58a6ff'
+  'tui': '#E91E63', 'monorepo': '#58a6ff', 'ecosystem': '#7C3AED'
 };
 
 const TYPE_SIZES = {
-  'monorepo': 24, 'hub': 20, 'kernel': 16, 'service': 14, 'tui': 14,
+  'monorepo': 24, 'ecosystem': 20, 'hub': 20, 'kernel': 16, 'service': 14, 'tui': 14,
   'sdk': 12, 'plugin': 12, 'skill': 6, 'agent': 6, 'mcp-server': 7, 'hook-event': 7
 };
 
 const TYPE_LABELS = {
   'plugin': 'Plugin', 'skill': 'Skill', 'agent': 'Agent', 'mcp-server': 'MCP Server',
   'hook-event': 'Hook Event', 'hub': 'Hub', 'kernel': 'Kernel', 'service': 'Service',
-  'sdk': 'SDK', 'tui': 'TUI', 'monorepo': 'Monorepo'
+  'sdk': 'SDK', 'tui': 'TUI', 'monorepo': 'Monorepo', 'ecosystem': 'Ecosystem'
 };
 
 // State
@@ -516,7 +516,7 @@ var simulation = d3.forceSimulation(graphNodes)
   }))
   .force('charge', d3.forceManyBody().strength(function(d) {
     if (d.type === 'sprint-phase') return -800;
-    if (d.type === 'monorepo') return -1200;
+    if (d.type === 'monorepo' || d.type === 'ecosystem') return -1200;
     if (d.type === 'hub') return -900;
     if (d.type === 'plugin' || d.type === 'kernel') return -400;
     return -120;
@@ -524,19 +524,19 @@ var simulation = d3.forceSimulation(graphNodes)
   .force('center', d3.forceCenter(width / 2, height / 2).strength(0.02))
   .force('radial', d3.forceRadial(function(d) {
     // Concentric rings: core anchors stay center, plugins mid-ring, leaves outer
-    if (d.type === 'monorepo' || d.type === 'hub') return 0;
+    if (d.type === 'monorepo' || d.type === 'ecosystem' || d.type === 'hub') return 0;
     if (d.type === 'sprint-phase') return 0; // pinned by fx/fy
     if (d.type === 'plugin' || d.type === 'kernel' || d.type === 'service') return Math.min(width, height) * 0.22;
     return Math.min(width, height) * 0.35;
   }, width / 2, height / 2).strength(function(d) {
-    if (d.type === 'monorepo' || d.type === 'hub') return 0;
+    if (d.type === 'monorepo' || d.type === 'ecosystem' || d.type === 'hub') return 0;
     if (d.type === 'sprint-phase') return 0;
     if (d.type === 'plugin' || d.type === 'kernel' || d.type === 'service') return 0.4;
     return 0.5;
   }))
   .force('collision', d3.forceCollide().radius(function(d) {
     if (d.type === 'sprint-phase') return 120;
-    if (d.type === 'monorepo' || d.type === 'hub') return 35;
+    if (d.type === 'monorepo' || d.type === 'ecosystem' || d.type === 'hub') return 35;
     if (d.type === 'plugin' || d.type === 'kernel') return 20;
     return (TYPE_SIZES[d.type] || 8) + 8;
   }));
@@ -565,7 +565,7 @@ node.append('text')
   .attr('dy', 3)
   .text(function(d) { return d.label; })
   .style('font-size', function(d) {
-    if (d.type === 'monorepo' || d.type === 'hub') return '13px';
+    if (d.type === 'monorepo' || d.type === 'ecosystem' || d.type === 'hub') return '13px';
     if (d.type === 'plugin' || d.type === 'kernel' || d.type === 'service') return '11px';
     return '9px';
   });
@@ -1530,7 +1530,7 @@ function rebuildSimulation() {
     .attr('dy', 3)
     .text(function(d) { return d.label; })
     .style('font-size', function(d) {
-      if (d.type === 'monorepo' || d.type === 'hub') return '13px';
+      if (d.type === 'monorepo' || d.type === 'ecosystem' || d.type === 'hub') return '13px';
       if (d.type === 'plugin' || d.type === 'kernel' || d.type === 'service') return '11px';
       return '9px';
     });

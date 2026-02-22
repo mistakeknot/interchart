@@ -9,7 +9,7 @@ Generate an interactive HTML diagram of the Interverse ecosystem.
 
 ## Steps
 
-1. Determine the Interverse root directory. Default: the monorepo root (parent of `plugins/`, `hub/`, `services/`). If you're unsure, look for the directory containing `plugins/` and `hub/clavain/`.
+1. Determine the Interverse root directory. Default: the monorepo root (parent of `plugins/`, `hub/`, `services/`). If you're unsure, look for the directory containing `plugins/` and `os/clavain/`.
 
 2. Run the generator script:
    ```bash
