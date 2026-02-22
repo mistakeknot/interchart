@@ -47,6 +47,6 @@ git -C "$INTERCHART_DIR" worktree add --detach "$WORKTREE_DIR" gh-pages 2>/dev/n
 cp "$CURRENT" "$WORKTREE_DIR/index.html"
 git -C "$WORKTREE_DIR" add index.html
 git -C "$WORKTREE_DIR" commit -m "chore: regenerate diagram ($NODE_COUNT nodes, $EDGE_COUNT edges)" 2>/dev/null || { echo "interchart: no changes to deploy"; exit 0; }
-git -C "$WORKTREE_DIR" push origin gh-pages 2>/dev/null
+git -C "$WORKTREE_DIR" push origin HEAD:gh-pages
 
 echo "interchart: deployed ($NODE_COUNT nodes, $EDGE_COUNT edges)"
