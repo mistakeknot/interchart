@@ -175,11 +175,10 @@ body {
 .link.provides-skill { stroke: #50C878; }
 .link.provides-agent { stroke: #FF8C42; }
 .link.provides-mcp { stroke: #9B59B6; stroke-dasharray: 4 2; }
-.link.fires-hook { stroke: #E74C3C; stroke-dasharray: 2 2; display: none; }
+.link.fires-hook { stroke: #E74C3C; stroke-dasharray: 2 2; }
 .link.companion-of { stroke: #F39C12; stroke-dasharray: 6 3; stroke-width: 2; stroke-opacity: 0.3; }
 .link.depends-on { stroke: #1ABC9C; stroke-dasharray: 4 4; stroke-opacity: 0.3; }
 .link.part-of { stroke: #30363d; stroke-opacity: 0.2; }
-.show-hooks .link.fires-hook { display: unset; }
 
 .phase-arc {
   fill: none;
@@ -381,7 +380,7 @@ body {
 <script>
 // DATA_PLACEHOLDER is replaced by the generator with scanned JSON
 const data = {
-  "generated": "2026-02-22T19:33:11.402Z",
+  "generated": "2026-02-22T19:42:37.925Z",
   "stats": {
     "nodes": 124,
     "edges": 186,
@@ -3617,6 +3616,9 @@ simulation.on('tick', function() {
   updateSpotlightPaths();
 });
 
+// Apply initial filters (hides hook edges, etc.)
+applyFilters();
+
 // --- Interaction ---
 
 function getNodeId(n) { return typeof n === 'object' ? n.id : n; }
@@ -3949,6 +3951,7 @@ function applyFilters() {
     }
     // Regular ecosystem edges
     if (!ecosystemActive) return 'none';
+    if (l.type === 'fires-hook' && !hooksVisible) return 'none';
     if (!activeFilters.has(sn.type) || !activeFilters.has(tn.type)) return 'none';
     return null;
   });
@@ -4359,7 +4362,7 @@ function toggleHookEdges() {
   var btn = document.getElementById('toggle-hooks');
   btn.classList.toggle('active', hooksVisible);
   btn.style.opacity = hooksVisible ? '1' : '0.6';
-  svg.classed('show-hooks', hooksVisible);
+  applyFilters();
 }
 
 function rebuildGraph() {
