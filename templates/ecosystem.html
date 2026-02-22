@@ -181,6 +181,20 @@ body {
 .link.part-of { stroke: #30363d; stroke-opacity: 0.2; }
 .show-hooks .link.fires-hook { display: unset; }
 
+.phase-arc {
+  fill: none;
+  stroke-width: 6;
+  stroke-opacity: 0.5;
+  stroke-linecap: round;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px var(--arc-color));
+}
+.phase-arc-dot {
+  stroke: none;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
 .domain-hull {
   fill-opacity: 0.08;
   stroke-opacity: 0.35;
@@ -673,6 +687,8 @@ function selectNode(d) {
     sprintNodeGroup.selectAll('.sprint-phase-node')
       .classed('highlighted', function() { return connectedIds.has(d3.select(this).attr('data-id')); })
       .classed('dimmed', function() { return !connectedIds.has(d3.select(this).attr('data-id')); });
+    // Draw arc highlights showing which phases this node participates in
+    drawPhaseArcs(d.id);
   }
 
   showDetailPanel(d);
@@ -683,6 +699,7 @@ function deselectAll() {
   node.classed('highlighted', false).classed('dimmed', false);
   link.classed('highlighted', false).classed('dimmed', false);
   spotlightGroup.selectAll('*').remove();
+  clearPhaseArcs();
   if (sprintActive) {
     sprintNodeGroup.selectAll('.sprint-phase-node')
       .classed('highlighted', false).classed('dimmed', false);
@@ -1193,8 +1210,93 @@ var sprintLinks = [];
 
 // SVG layers for sprint-specific rendering
 var sprintFlowGroup = g.append('g').attr('class', 'sprint-flow-layer');
+var phaseArcGroup = g.append('g').attr('class', 'phase-arc-layer');
 var sprintNodeGroup = g.append('g').attr('class', 'sprint-node-layer');
 var spotlightGroup = g.append('g').attr('class', 'spotlight-layer');
+
+// ── Phase arc highlights — show which sprint phases a plugin participates in ──
+
+function clearPhaseArcs() { phaseArcGroup.selectAll('*').remove(); }
+
+function drawPhaseArcs(nodeId) {
+  clearPhaseArcs();
+  if (!sprintActive || !nodeToPhases[nodeId]) return;
+
+  var phases = nodeToPhases[nodeId];
+  // Map phase IDs to their indices in SPRINT_PHASES
+  var indices = [];
+  phases.forEach(function(pid) {
+    var idx = SPRINT_PHASES.findIndex(function(p) { return p.id === pid; });
+    if (idx >= 0 && activePhases.has(pid)) indices.push(idx);
+  });
+  if (indices.length === 0) return;
+  indices.sort(function(a, b) { return a - b; });
+
+  // Find contiguous spans
+  var spans = [];
+  var spanStart = indices[0], spanEnd = indices[0];
+  for (var i = 1; i < indices.length; i++) {
+    if (indices[i] === spanEnd + 1) {
+      spanEnd = indices[i];
+    } else {
+      spans.push([spanStart, spanEnd]);
+      spanStart = spanEnd = indices[i];
+    }
+  }
+  spans.push([spanStart, spanEnd]);
+
+  // Get the plugin node color for the arc
+  var pluginNode = nodeById[nodeId];
+  var arcColor = pluginNode ? (TYPE_COLORS[pluginNode.type] || '#58a6ff') : '#58a6ff';
+
+  // Draw each span as an SVG elliptical arc
+  var n = SPRINT_PHASES.length;
+  var cx = width * 0.5, cy = height * 0.5;
+  // Arc sits slightly outside the sprint ring
+  var arcRx = width * 0.40 + 20;
+  var arcRy = height * 0.40 + 20;
+
+  spans.forEach(function(span) {
+    var startIdx = span[0], endIdx = span[1];
+    if (startIdx === endIdx) {
+      // Single phase: draw a dot instead of an arc
+      var angle = -Math.PI / 2 + (startIdx / n) * 2 * Math.PI;
+      phaseArcGroup.append('circle')
+        .attr('class', 'phase-arc-dot')
+        .attr('cx', cx + arcRx * Math.cos(angle))
+        .attr('cy', cy + arcRy * Math.sin(angle))
+        .attr('r', 6)
+        .attr('fill', arcColor)
+        .style('--arc-color', arcColor)
+        .attr('opacity', 0)
+        .transition().duration(300).attr('opacity', 0.7);
+      return;
+    }
+
+    // Multi-phase arc: draw along the ellipse
+    var startAngle = -Math.PI / 2 + (startIdx / n) * 2 * Math.PI;
+    var endAngle = -Math.PI / 2 + (endIdx / n) * 2 * Math.PI;
+
+    // Build arc path using elliptical arc command
+    var x1 = cx + arcRx * Math.cos(startAngle);
+    var y1 = cy + arcRy * Math.sin(startAngle);
+    var x2 = cx + arcRx * Math.cos(endAngle);
+    var y2 = cy + arcRy * Math.sin(endAngle);
+
+    // Large arc flag: if span covers more than half the circle
+    var angleDiff = endAngle - startAngle;
+    var largeArc = angleDiff > Math.PI ? 1 : 0;
+
+    phaseArcGroup.append('path')
+      .attr('class', 'phase-arc')
+      .attr('d', 'M' + x1 + ',' + y1 +
+        ' A' + arcRx + ',' + arcRy + ' 0 ' + largeArc + ',1 ' + x2 + ',' + y2)
+      .attr('stroke', arcColor)
+      .style('--arc-color', arcColor)
+      .attr('stroke-opacity', 0)
+      .transition().duration(300).attr('stroke-opacity', 0.5);
+  });
+}
 
 // Compute pinned positions for sprint phases — elliptical ring around ecosystem
 function computePhasePositions() {
