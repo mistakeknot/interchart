@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Interverse Ecosystem</title>
+<title>Demarch Ecosystem</title>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -335,7 +335,7 @@ body {
 <body>
 
 <div id="toolbar">
-  <span class="title">Interverse</span>
+  <span class="title">Demarch</span>
   <div id="toggle-bar">
     <button class="toggle-btn active" id="toggle-ecosystem" onclick="toggleLayer('ecosystem')">Ecosystem</button>
     <button class="toggle-btn active" id="toggle-sprint" onclick="toggleLayer('sprint')">Sprint</button>
@@ -548,7 +548,7 @@ var link = linkGroup.selectAll('line').data(graphLinks).join('line')
   .attr('stroke-width', function(d) { return d.type === 'companion-of' ? 2 : 1; });
 
 // Draw nodes
-var CORE_TYPES = { monorepo: 1, hub: 1, plugin: 1, kernel: 1, service: 1 };
+var CORE_TYPES = { monorepo: 1, ecosystem: 1, hub: 1, plugin: 1, kernel: 1, service: 1 };
 var nodeGroup_eco = g.append('g').attr('class', 'nodes');
 var node = nodeGroup_eco.selectAll('g').data(graphNodes).join('g')
   .attr('class', function(d) { return 'node' + (CORE_TYPES[d.type] ? '' : ' leaf-node'); })
