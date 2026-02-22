@@ -1,13 +1,13 @@
 {
-  "generated": "2026-02-21T09:06:54.234Z",
+  "generated": "2026-02-21T09:16:08.227Z",
   "stats": {
-    "nodes": 123,
-    "edges": 185,
+    "nodes": 124,
+    "edges": 186,
     "overlaps": 36,
     "byType": {
       "monorepo": 1,
       "plugin": 32,
-      "skill": 47,
+      "skill": 48,
       "hook-event": 5,
       "agent": 21,
       "mcp-server": 12,
@@ -1258,6 +1258,17 @@
       }
     },
     {
+      "id": "clavain:lane",
+      "type": "skill",
+      "label": "lane",
+      "description": "Manage thematic work lanes — discover, create, tag beads, show velocity and starvation scores",
+      "meta": {
+        "plugin": "clavain",
+        "path": "hub/clavain/skills/lane",
+        "repoUrl": "https://github.com/mistakeknot/Clavain"
+      }
+    },
+    {
       "id": "clavain:refactor-safely",
       "type": "skill",
       "label": "refactor-safely",
@@ -1869,6 +1880,11 @@
     {
       "source": "clavain",
       "target": "clavain:landing-a-change",
+      "type": "provides-skill"
+    },
+    {
+      "source": "clavain",
+      "target": "clavain:lane",
       "type": "provides-skill"
     },
     {

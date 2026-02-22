@@ -167,15 +167,19 @@ body {
 .node circle { cursor: pointer; transition: opacity 0.2s; }
 .node circle:hover { filter: brightness(1.3); }
 .node text { font-size: 10px; fill: #8b949e; pointer-events: none; user-select: none; }
+.node.leaf-node text { opacity: 0; transition: opacity 0.15s; }
+.node.leaf-node:hover text { opacity: 1; }
+.node.leaf-node.highlighted text { opacity: 1; }
 
-.link { stroke-opacity: 0.3; transition: stroke-opacity 0.2s; }
+.link { stroke-opacity: 0.12; transition: stroke-opacity 0.2s; }
 .link.provides-skill { stroke: #50C878; }
 .link.provides-agent { stroke: #FF8C42; }
 .link.provides-mcp { stroke: #9B59B6; stroke-dasharray: 4 2; }
-.link.fires-hook { stroke: #E74C3C; stroke-dasharray: 2 2; }
-.link.companion-of { stroke: #F39C12; stroke-dasharray: 6 3; stroke-width: 2; }
-.link.depends-on { stroke: #1ABC9C; stroke-dasharray: 4 4; }
-.link.part-of { stroke: #30363d; }
+.link.fires-hook { stroke: #E74C3C; stroke-dasharray: 2 2; display: none; }
+.link.companion-of { stroke: #F39C12; stroke-dasharray: 6 3; stroke-width: 2; stroke-opacity: 0.3; }
+.link.depends-on { stroke: #1ABC9C; stroke-dasharray: 4 4; stroke-opacity: 0.3; }
+.link.part-of { stroke: #30363d; stroke-opacity: 0.2; }
+.show-hooks .link.fires-hook { display: unset; }
 
 .domain-hull {
   fill-opacity: 0.08;
@@ -200,7 +204,7 @@ body {
 
 .dimmed circle { opacity: 0.1; }
 .dimmed text { opacity: 0.1; }
-.link.dimmed { stroke-opacity: 0.03; }
+.link.dimmed { stroke-opacity: 0.02; }
 
 .highlighted circle { filter: brightness(1.4) drop-shadow(0 0 6px var(--glow)); }
 .highlighted text { fill: #f0f6fc; font-weight: 600; }
@@ -322,6 +326,7 @@ body {
   <div id="toggle-bar">
     <button class="toggle-btn active" id="toggle-ecosystem" onclick="toggleLayer('ecosystem')">Ecosystem</button>
     <button class="toggle-btn" id="toggle-sprint" onclick="toggleLayer('sprint')">Sprint</button>
+    <button class="toggle-btn" id="toggle-hooks" onclick="toggleHookEdges()" style="font-size:11px;padding:4px 8px;opacity:0.6">Hooks</button>
   </div>
   <span class="stats" id="stats"></span>
   <input type="text" id="search-box" placeholder="Search nodes..." oninput="onSearch(this.value)">
@@ -483,22 +488,44 @@ domainNames.forEach(function(domain) {
 var simulation = d3.forceSimulation(graphNodes)
   .force('link', d3.forceLink(graphLinks).id(function(d) { return d.id; }).distance(function(d) {
     if (d.type === 'participates-in') return 280;
-    if (d.type === 'part-of') return 100;
-    if (d.type === 'companion-of') return 120;
-    if (d.type === 'overlaps-with') return 90;
-    if (d.type === 'provides-skill' || d.type === 'provides-agent') return 50;
-    return 80;
+    if (d.type === 'part-of') return 140;
+    if (d.type === 'companion-of') return 160;
+    if (d.type === 'fires-hook') return 180;
+    if (d.type === 'provides-skill' || d.type === 'provides-agent') return 140;
+    if (d.type === 'provides-mcp') return 120;
+    return 120;
+  }).strength(function(d) {
+    // Weaken pull for high-density edge types so nodes spread more
+    if (d.type === 'provides-skill' || d.type === 'fires-hook') return 0.08;
+    if (d.type === 'provides-agent' || d.type === 'provides-mcp') return 0.1;
+    if (d.type === 'part-of') return 0.3;
+    return 0.2;
   }))
   .force('charge', d3.forceManyBody().strength(function(d) {
     if (d.type === 'sprint-phase') return -800;
-    if (d.type === 'monorepo' || d.type === 'hub') return -400;
-    if (d.type === 'plugin' || d.type === 'kernel') return -200;
-    return -60;
+    if (d.type === 'monorepo') return -1200;
+    if (d.type === 'hub') return -900;
+    if (d.type === 'plugin' || d.type === 'kernel') return -400;
+    return -120;
+  }).distanceMax(600))
+  .force('center', d3.forceCenter(width / 2, height / 2).strength(0.02))
+  .force('radial', d3.forceRadial(function(d) {
+    // Concentric rings: core anchors stay center, plugins mid-ring, leaves outer
+    if (d.type === 'monorepo' || d.type === 'hub') return 0;
+    if (d.type === 'sprint-phase') return 0; // pinned by fx/fy
+    if (d.type === 'plugin' || d.type === 'kernel' || d.type === 'service') return Math.min(width, height) * 0.22;
+    return Math.min(width, height) * 0.35;
+  }, width / 2, height / 2).strength(function(d) {
+    if (d.type === 'monorepo' || d.type === 'hub') return 0;
+    if (d.type === 'sprint-phase') return 0;
+    if (d.type === 'plugin' || d.type === 'kernel' || d.type === 'service') return 0.4;
+    return 0.5;
   }))
-  .force('center', d3.forceCenter(width / 2, height / 2).strength(0.05))
   .force('collision', d3.forceCollide().radius(function(d) {
     if (d.type === 'sprint-phase') return 120;
-    return (TYPE_SIZES[d.type] || 8) + 4;
+    if (d.type === 'monorepo' || d.type === 'hub') return 35;
+    if (d.type === 'plugin' || d.type === 'kernel') return 20;
+    return (TYPE_SIZES[d.type] || 8) + 8;
   }));
 
 // Draw links
@@ -508,9 +535,10 @@ var link = linkGroup.selectAll('line').data(graphLinks).join('line')
   .attr('stroke-width', function(d) { return d.type === 'companion-of' ? 2 : 1; });
 
 // Draw nodes
+var CORE_TYPES = { monorepo: 1, hub: 1, plugin: 1, kernel: 1, service: 1 };
 var nodeGroup_eco = g.append('g').attr('class', 'nodes');
 var node = nodeGroup_eco.selectAll('g').data(graphNodes).join('g')
-  .attr('class', 'node')
+  .attr('class', function(d) { return 'node' + (CORE_TYPES[d.type] ? '' : ' leaf-node'); })
   .call(d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended));
 
 node.append('circle')
@@ -1271,6 +1299,15 @@ function toggleLayer(layerName) {
   rebuildGraph();
 }
 
+var hooksVisible = false;
+function toggleHookEdges() {
+  hooksVisible = !hooksVisible;
+  var btn = document.getElementById('toggle-hooks');
+  btn.classList.toggle('active', hooksVisible);
+  btn.style.opacity = hooksVisible ? '1' : '0.6';
+  svg.classed('show-hooks', hooksVisible);
+}
+
 function rebuildGraph() {
   // Clear sprint-specific rendering + spotlight
   sprintNodeGroup.selectAll('*').remove();
@@ -1374,7 +1411,7 @@ function rebuildSimulation() {
   );
   node.exit().remove();
   var nodeEnter = node.enter().append('g')
-    .attr('class', 'node')
+    .attr('class', function(d) { return 'node' + (CORE_TYPES[d.type] ? '' : ' leaf-node'); })
     .call(d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended));
   nodeEnter.append('circle')
     .attr('r', function(d) { return TYPE_SIZES[d.type] || 8; })
