@@ -182,19 +182,24 @@ function readJson(filePath) {
   }
 }
 
-function readSkillFrontmatter(skillDir) {
-  const skillMd = path.join(skillDir, 'SKILL.md');
+function readFrontmatter(filePath) {
   try {
-    const content = fs.readFileSync(skillMd, 'utf8');
+    const content = fs.readFileSync(filePath, 'utf8');
     const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
     if (!match) return null;
     const fm = match[1];
     const name = (fm.match(/^name:\s*(.+)$/m) || [])[1]?.trim();
-    const desc = (fm.match(/^description:\s*(.+)$/m) || [])[1]?.trim();
+    // Support both single-line and multi-line (quoted) descriptions
+    let desc = (fm.match(/^description:\s*"([^"]+)"/m) || [])[1]?.trim()
+      || (fm.match(/^description:\s*(.+)$/m) || [])[1]?.trim();
     return { name, description: desc };
   } catch {
     return null;
   }
+}
+
+function readSkillFrontmatter(skillDir) {
+  return readFrontmatter(path.join(skillDir, 'SKILL.md'));
 }
 
 function scanPluginDir(pluginDir, pluginName, isHub = false) {
@@ -262,12 +267,15 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
     } catch { /* no skills dir */ }
   }
 
-  // Agents
+  // Agents — read frontmatter for descriptions
   if (manifest.agents && Array.isArray(manifest.agents)) {
     for (const agentRef of manifest.agents) {
       const agentName = path.basename(agentRef, '.md');
       const agentId = `${manifest.name}:agent:${agentName}`;
-      addNode(agentId, 'agent', agentName, '', {
+      const agentPath = path.join(pluginDir, agentRef);
+      const agentFm = readFrontmatter(agentPath);
+      const agentDesc = agentFm?.description || '';
+      addNode(agentId, 'agent', agentName, agentDesc, {
         plugin: manifest.name,
         path: agentRef,
         repoUrl: repoUrlForName(manifest.name)
@@ -280,7 +288,8 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
   if (manifest.mcpServers && typeof manifest.mcpServers === 'object') {
     for (const [serverName, config] of Object.entries(manifest.mcpServers)) {
       const serverId = `mcp:${manifest.name}:${serverName}`;
-      addNode(serverId, 'mcp-server', serverName, `MCP server: ${config.type || 'stdio'}`, {
+      const mcpDesc = `MCP server for ${manifest.name} — provides ${serverName} tools via ${config.type || 'stdio'}`;
+      addNode(serverId, 'mcp-server', serverName, mcpDesc, {
         plugin: manifest.name,
         type: config.type,
         command: config.command,
@@ -297,7 +306,14 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
     for (const eventName of Object.keys(hooksData.hooks)) {
       const hookId = `hook:${eventName}`;
       if (!nodeIds.has(hookId)) {
-        addNode(hookId, 'hook-event', eventName, `Hook event: ${eventName}`, {
+        const hookDescs = {
+          SessionStart: 'Fires when a Claude Code session begins — initialize state, check prerequisites, load context',
+          SessionEnd: 'Fires when a session ends — persist state, sync data, clean up resources',
+          PreToolUse: 'Fires before a tool executes — validate, intercept, or modify tool calls',
+          PostToolUse: 'Fires after a tool executes — audit results, trigger follow-up actions',
+          Stop: 'Fires when Claude Code stops — handoff checks, session summaries, final sync'
+        };
+        addNode(hookId, 'hook-event', eventName, hookDescs[eventName] || `Hook event: ${eventName}`, {
           docsUrl: CLAUDE_CODE_HOOKS_DOCS_URL
         });
       }
@@ -432,6 +448,57 @@ const overlaps = resolvedEdges
     };
   })
   .sort((a, b) => b.score - a.score || a.source.localeCompare(b.source));
+
+// ── Standardize descriptions ──
+// Target: 40-120 chars, descriptive (not trigger-focused), sentence fragment
+
+const CURATED_DESCRIPTIONS = {
+  // Skills with empty or poor descriptions
+  'intercheck:status': 'Session health dashboard — plugin errors, MCP status, hook failures',
+  'interfluence:skills': 'Voice profile management — analyze writing samples, apply style adaptation',
+  'interject:skills': 'Ambient research discovery — scan arXiv, HN, GitHub for relevant papers and tools',
+  'interkasten:layout': 'Notion page layout optimization — structure and format synced documents',
+  'interkasten:onboard': 'Notion workspace onboarding — connect databases, configure sync mappings',
+  'interkasten:doctor': 'Notion sync diagnostics — check connection health, resolve sync conflicts',
+  'interleave:interleave': 'Template-driven document generation — deterministic skeleton with LLM-filled islands',
+  'intermap:skills': 'Code architecture mapping — call graphs, module boundaries, dependency analysis',
+  'intermem:synthesize': 'Memory synthesis — graduate stable auto-memory facts to AGENTS.md and CLAUDE.md',
+  'intermux:status': 'Agent activity dashboard — tmux sessions, heartbeats, resource usage',
+  'interstat:skills': 'Token efficiency benchmarking — measure and compare agent cost patterns',
+};
+
+const MAX_DESC_LENGTH = 120;
+
+for (const n of nodes) {
+  // Apply curated descriptions for known empty/poor entries
+  if (CURATED_DESCRIPTIONS[n.id]) {
+    n.description = CURATED_DESCRIPTIONS[n.id];
+  }
+  // Clean up skill descriptions: strip "Use when..." prefix, make descriptive
+  if (n.type === 'skill' && n.description) {
+    n.description = n.description
+      .replace(/^"/, '').replace(/"$/, '')  // strip wrapping quotes
+      .replace(/^Use when\s+/i, '')
+      .replace(/^This skill should be used when\s+/i, '')
+      .replace(/\s+/g, ' ').trim();
+    // Capitalize first letter
+    if (n.description) n.description = n.description[0].toUpperCase() + n.description.slice(1);
+  }
+  // Clean up plugin descriptions: strip plugin name prefix, em-dashes
+  if (n.type === 'plugin' && n.description) {
+    n.description = n.description
+      .replace(new RegExp('^' + n.label + '\\s*[—–-]\\s*', 'i'), '')
+      .replace(/\s+/g, ' ').trim();
+    if (n.description) n.description = n.description[0].toUpperCase() + n.description.slice(1);
+  }
+  // Truncate long descriptions
+  if (n.description && n.description.length > MAX_DESC_LENGTH) {
+    // Cut at last word boundary before limit
+    let cut = n.description.lastIndexOf(' ', MAX_DESC_LENGTH);
+    if (cut < 60) cut = MAX_DESC_LENGTH; // avoid too-short truncation
+    n.description = n.description.slice(0, cut).replace(/[.,;:\s]+$/, '');
+  }
+}
 
 // Output
 const output = {
