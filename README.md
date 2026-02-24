@@ -6,16 +6,16 @@ Interactive ecosystem diagram for the Interverse monorepo. Visualizes plugins, s
 
 ## Features
 
-- **Ecosystem layer** — force-directed graph of 120+ nodes across 11 domains with concentric radial layout (core → plugin ring → leaf ring)
-- **Sprint layer** — 10-phase workflow ring (Brainstorm → Ship) with flow arrows, gate diamonds, and skip arcs
-- **Combined view** — both layers active by default; sprint ring frames the ecosystem
-- **Progressive disclosure** — leaf node labels hidden by default, revealed on hover
-- **Phase arc highlights** — click a plugin to see colored arcs on the sprint ring showing which phases it participates in
-- **Draggable nodes** — drag any node (ecosystem or sprint phase) to rearrange; sprint phases stay pinned where dropped
-- **Domain hulls** — convex hull overlays group nodes by domain; dimmed when sprint is active
-- **Detail panel** — click any node for description, children, connections, and sprint phase participation
-- **Hooks toggle** — show/hide hook event edges (hidden by default to reduce noise)
-- **Filters** — filter by node type, domain, sprint phase; search by name
+- **Ecosystem layer**: force-directed graph of 120+ nodes across 11 domains with concentric radial layout (core → plugin ring → leaf ring)
+- **Sprint layer**: 10-phase workflow ring (Brainstorm → Ship) with flow arrows, gate diamonds, and skip arcs
+- **Combined view**: both layers active by default; sprint ring frames the ecosystem
+- **Progressive disclosure**: leaf node labels hidden by default, revealed on hover
+- **Phase arc highlights**: click a plugin to see colored arcs on the sprint ring showing which phases it participates in
+- **Draggable nodes**: drag any node (ecosystem or sprint phase) to rearrange; sprint phases stay pinned where dropped
+- **Domain hulls**: convex hull overlays group nodes by domain; dimmed when sprint is active
+- **Detail panel**: click any node for description, children, connections, and sprint phase participation
+- **Hooks toggle**: show/hide hook event edges (hidden by default to reduce noise)
+- **Filters**: filter by node type, domain, sprint phase; search by name
 
 ## Usage
 
