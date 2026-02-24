@@ -4,11 +4,11 @@
 # Designed to be called from a git post-push hook or cron.
 set -euo pipefail
 
-INTERVERSE_ROOT="${1:-/root/projects/Interverse}"
-INTERCHART_DIR="$INTERVERSE_ROOT/plugins/interchart"
+DEMARCH_ROOT="${1:-/root/projects/Demarch}"
+INTERCHART_DIR="$DEMARCH_ROOT/interverse/interchart"
 
 # Generate
-DATA=$(node "$INTERCHART_DIR/scripts/scan.js" "$INTERVERSE_ROOT" 2>/dev/null)
+DATA=$(node "$INTERCHART_DIR/scripts/scan.js" "$DEMARCH_ROOT" 2>/dev/null)
 NODE_COUNT=$(echo "$DATA" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.nodes))")
 EDGE_COUNT=$(echo "$DATA" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.edges))")
 
@@ -22,7 +22,7 @@ node -e "
 " <<< "$DATA"
 
 # Check if anything changed (compare full file hash, not just node count)
-CURRENT="$INTERVERSE_ROOT/docs/diagrams/ecosystem.html"
+CURRENT="$DEMARCH_ROOT/docs/diagrams/ecosystem.html"
 if [ -f "$CURRENT" ]; then
   OLD_HASH=$(sha256sum "$CURRENT" | cut -d' ' -f1)
   NEW_HASH=$(sha256sum "$TMPHTML" | cut -d' ' -f1)

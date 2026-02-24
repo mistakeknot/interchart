@@ -1,21 +1,21 @@
 ---
 name: interchart
-description: Generate interactive ecosystem diagram showing all Interverse plugins, skills, agents, MCP servers, and their relationships as a D3.js force graph.
+description: Generate interactive ecosystem diagram showing all Demarch plugins, skills, agents, MCP servers, and their relationships as a D3.js force graph.
 ---
 
 # Interchart: Ecosystem Diagram Generator
 
-Generate an interactive HTML diagram of the Interverse ecosystem.
+Generate an interactive HTML diagram of the Demarch ecosystem.
 
 ## Steps
 
-1. Determine the Interverse root directory. Default: the monorepo root (parent of `plugins/`, `hub/`, `services/`). If you're unsure, look for the directory containing `plugins/` and `os/clavain/`.
+1. Determine the Demarch monorepo root directory. Default: the monorepo root (parent of `interverse/`, `os/`, `core/`). If you're unsure, look for the directory containing `interverse/` and `os/clavain/`.
 
 2. Run the generator script:
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/generate.sh "<interverse_root>" "<output_path>"
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/generate.sh "<demarch_root>" "<output_path>"
    ```
-   - Default output: `docs/diagrams/ecosystem.html` in the Interverse root
+   - Default output: `docs/diagrams/ecosystem.html` in the Demarch root
    - The script scans all plugin manifests, skills, agents, MCP servers, and hooks
 
 3. Report the result to the user:

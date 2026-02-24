@@ -3,11 +3,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
-INTERVERSE_ROOT="${1:-$(cd "$PLUGIN_DIR/../.." && pwd)}"
-OUTPUT="${2:-$INTERVERSE_ROOT/docs/diagrams/ecosystem.html}"
+DEMARCH_ROOT="${1:-$(cd "$PLUGIN_DIR/../.." && pwd)}"
+OUTPUT="${2:-$DEMARCH_ROOT/docs/diagrams/ecosystem.html}"
 
 # Run scanner
-DATA=$(node "$SCRIPT_DIR/scan.js" "$INTERVERSE_ROOT")
+DATA=$(node "$SCRIPT_DIR/scan.js" "$DEMARCH_ROOT")
 
 # Count nodes/edges
 NODE_COUNT=$(echo "$DATA" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.nodes))")

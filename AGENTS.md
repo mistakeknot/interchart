@@ -1,6 +1,6 @@
 # interchart — AGENTS.md
 
-Interactive ecosystem diagram generator for Interverse. Scans all plugins, skills, agents, MCP servers, hooks, and infrastructure nodes across the monorepo and produces a self-contained D3.js force graph.
+Interactive ecosystem diagram generator for the Demarch monorepo. Scans all plugins, skills, agents, MCP servers, hooks, and infrastructure nodes and produces a self-contained D3.js force graph.
 
 **Live diagram:** https://mistakeknot.github.io/interchart/
 
@@ -47,7 +47,8 @@ skills/interchart/SKILL.md    → Claude Code skill for /interchart command
 
 | Type | Description | Size | Example |
 |------|-------------|------|---------|
-| `monorepo` | Interverse root | 24 | Interverse |
+| `monorepo` | Demarch root | 24 | Demarch |
+| `ecosystem` | Interverse plugin ecosystem | 20 | Interverse |
 | `hub` | Clavain hub | 20 | clavain |
 | `kernel` | Intercore kernel | 16 | intercore |
 | `service` | Go services | 14 | intermute |
@@ -95,7 +96,7 @@ The app uses a **unified force graph** with two independent toggle buttons in th
 
 | Toggle | Content | Default |
 |--------|---------|---------|
-| **Ecosystem** | D3.js force-directed graph of all Interverse modules | ON |
+| **Ecosystem** | D3.js force-directed graph of all Demarch modules | ON |
 | **Sprint** | Sprint phase nodes pinned in horizontal arc + flow arrows | OFF |
 
 Both toggles can be active simultaneously. When both are on, sprint phases become gravitational anchors in the force simulation — plugins cluster near the phases they participate in via `participates-in` edges.
@@ -111,7 +112,7 @@ Both toggles can be active simultaneously. When both are on, sprint phases becom
 
 ### UI Layout
 
-- **Toolbar** (top, 44px): "Interverse" title, toggle bar (Ecosystem/Sprint), stats, search box
+- **Toolbar** (top, 44px): "Demarch" title, toggle bar (Ecosystem/Sprint), stats, search box
 - **Sidebar toggle** (fixed position, top-left): Hamburger button to expand filter sidebar
 - **Filter sidebar** (left, 240px, overlay): Type filters + domain hull toggles + sprint phase toggles (when sprint active). Starts collapsed.
 - **Graph area** (center): Single D3.js force-directed SVG (full viewport)
@@ -185,10 +186,10 @@ Agents regenerate the diagram as a final step after any change that adds, remove
 
 ```bash
 # Generate + deploy to gh-pages (safe — uses git worktree, never touches main)
-bash scripts/regenerate-and-deploy.sh /root/projects/Interverse
+bash scripts/regenerate-and-deploy.sh /root/projects/Demarch
 
 # Generate only (no deploy)
-bash scripts/generate.sh /root/projects/Interverse
+bash scripts/generate.sh /root/projects/Demarch
 ```
 
 ### GitHub Pages
@@ -235,7 +236,7 @@ No test framework — verify manually:
 
 ```bash
 # Scanner produces valid JSON with expected counts
-node scripts/scan.js /root/projects/Interverse 2>/dev/null | \
+node scripts/scan.js /root/projects/Demarch 2>/dev/null | \
   node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
     const j=JSON.parse(d);
     console.log('Nodes:', j.stats.nodes, 'Edges:', j.stats.edges, 'Overlaps:', j.stats.overlaps);
@@ -243,12 +244,12 @@ node scripts/scan.js /root/projects/Interverse 2>/dev/null | \
   })"
 
 # Generate HTML and check file exists
-bash scripts/generate.sh /root/projects/Interverse /tmp/test-ecosystem.html
+bash scripts/generate.sh /root/projects/Demarch /tmp/test-ecosystem.html
 ls -la /tmp/test-ecosystem.html
 
 # Verify variable ordering (no use-before-define)
-node scripts/scan.js /root/projects/Interverse 2>/dev/null | \
-  bash scripts/generate.sh /root/projects/Interverse /tmp/test.html && \
+node scripts/scan.js /root/projects/Demarch 2>/dev/null | \
+  bash scripts/generate.sh /root/projects/Demarch /tmp/test.html && \
   echo "Generation succeeded"
 ```
 

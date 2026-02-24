@@ -1,18 +1,18 @@
 # interchart
 
-Interactive ecosystem diagram generator for Interverse. See `AGENTS.md` for architecture, data model, and troubleshooting.
+Interactive ecosystem diagram generator for the Demarch monorepo. See `AGENTS.md` for architecture, data model, and troubleshooting.
 
 ## Quick Commands
 
 ```bash
 # Generate diagram
-bash scripts/generate.sh /root/projects/Interverse
+bash scripts/generate.sh /root/projects/Demarch
 
 # Scanner only (JSON to stdout)
-node scripts/scan.js /root/projects/Interverse
+node scripts/scan.js /root/projects/Demarch
 
 # Deploy to GitHub Pages
-bash scripts/regenerate-and-deploy.sh /root/projects/Interverse
+bash scripts/regenerate-and-deploy.sh /root/projects/Demarch
 ```
 
 ## Design Decisions (Do Not Re-Ask)

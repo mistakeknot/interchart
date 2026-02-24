@@ -353,7 +353,7 @@ addNode('interverse', 'ecosystem', 'Interverse', 'Companion plugin ecosystem (33
 addEdge('interverse', 'demarch', 'part-of');
 
 // 2. Scan all plugins
-const pluginsDir = path.join(ROOT, 'plugins');
+const pluginsDir = path.join(ROOT, 'interverse');
 try {
   const pluginEntries = fs.readdirSync(pluginsDir, { withFileTypes: true });
   for (const entry of pluginEntries) {
@@ -367,7 +367,7 @@ try {
 }
 
 // 3. Scan Clavain hub
-const clavainDir = path.join(ROOT, 'hub', 'clavain');
+const clavainDir = path.join(ROOT, 'os', 'clavain');
 try {
   fs.statSync(clavainDir);
   scanPluginDir(clavainDir, 'clavain', true);
@@ -377,13 +377,13 @@ try {
 
 // 4. Fixed infrastructure nodes
 addNode('intercore', 'kernel', 'Intercore', 'Kernel — phases, gates, runs, dispatches, state machine', {
-  path: 'infra/intercore',
+  path: 'core/intercore',
   repoUrl: repoUrlForName('intercore')
 });
 addEdge('intercore', 'demarch', 'part-of');
 
 addNode('intermute-service', 'service', 'Intermute', 'Multi-agent coordination service (Go)', {
-  path: 'services/intermute',
+  path: 'core/intermute',
   repoUrl: repoUrlForName('intermute')
 });
 addEdge('intermute-service', 'demarch', 'part-of');
