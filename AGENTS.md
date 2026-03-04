@@ -236,25 +236,35 @@ The template uses inline `<script>` with `const`/`let` — these are NOT hoisted
 
 ## Deployment
 
-### Agent-driven (primary)
+**CRITICAL: GitHub Pages deploys from `main` via Actions, NOT from the `gh-pages` branch.** The deploy workflow (`.github/workflows/deploy.yml`) triggers on pushes to `main` and builds `_site/` from `templates/ecosystem.html` + `data/scan.json`. Pushing to `gh-pages` alone does nothing — the live site won't update.
 
-Agents regenerate the diagram as a final step after any change that adds, removes, or renames plugins, skills, agents, MCP servers, or hooks. This is documented in the Interverse root `AGENTS.md` under "Ecosystem Diagram (interchart)".
+### Deploy steps
 
 ```bash
-# Generate + deploy to gh-pages (safe — uses git worktree, never touches main)
-bash scripts/regenerate-and-deploy.sh /root/projects/Demarch
-
-# Generate only (no deploy)
+# 1. Generate (updates docs/diagrams/ecosystem.html + data/scan.json)
 bash scripts/generate.sh /root/projects/Demarch
+
+# 2. Commit template + scan data to main in the interchart repo
+cd interverse/interchart
+git add templates/ecosystem.html data/scan.json
+git commit -m "chore: regenerate diagram"
+git push origin main
+
+# 3. Actions workflow deploys automatically (~30s)
 ```
+
+The legacy `regenerate-and-deploy.sh` script pushes to `gh-pages` but this does NOT trigger the Pages deploy. Use the steps above instead.
+
+### Agent-driven (primary)
+
+Agents regenerate the diagram as a final step after any change that adds, removes, or renames plugins, skills, agents, MCP servers, or hooks. This is documented in the Interverse root `AGENTS.md` under "Ecosystem Diagram (interchart)". After generating, **commit and push to `main`** in the interchart repo to trigger deployment.
 
 ### GitHub Pages
 
-- Branch: `gh-pages`
-- Files: `index.html` (generated diagram), `.nojekyll`
+- Deploy method: GitHub Actions workflow on push to `main`
+- Workflow: `.github/workflows/deploy.yml` → builds `_site/` → `actions/deploy-pages`
 - URL: https://mistakeknot.github.io/interchart/
-
-The `gh-pages` branch only contains the generated `index.html` — do NOT merge it into `main`.
+- The `gh-pages` branch exists but is NOT used for deployment (legacy)
 
 ## Adding New Components
 
@@ -312,9 +322,9 @@ node scripts/scan.js /root/projects/Demarch 2>/dev/null | \
 ## Gotchas
 
 - **Blank page = JS error**: The template runs as a single inline `<script>` block. Any `ReferenceError` kills the entire script silently — the page renders as blank with no console visible to most users. Always verify variable ordering after edits.
-- **`regenerate-and-deploy.sh` uses a worktree**: It creates a temporary git worktree for `gh-pages`, copies the file, commits, pushes, and cleans up — it never touches the `main` working tree.
+- **Pushing to `gh-pages` does NOT deploy**: GitHub Pages is configured with `build_type: workflow`. Only pushes to `main` trigger the deploy Actions workflow. The `regenerate-and-deploy.sh` script pushes to `gh-pages` which is a no-op for deployment — you must commit and push to `main` instead.
 - **Scanner skips itself**: `interchart` is excluded from scanning (line 339 in `scan.js`) to avoid a self-referential node.
 - **D3 CDN dependency**: The generated HTML loads `https://d3js.org/d3.v7.min.js` — it will not render offline.
 - **`box-sizing: border-box`**: The template uses this globally. The sidebar overlays the graph (no `padding-left`) so the SVG content area is the full `100vw`.
 - **Convex hull edge case**: `d3.polygonHull()` requires 3+ non-collinear points. Two-point domains use a custom rounded-rectangle path. Single-point domains are skipped.
-- **gh-pages branch isolation**: The `gh-pages` branch has only `index.html` and `.nojekyll`. Never merge it into `main` or vice versa.
+- **gh-pages branch is legacy**: The `gh-pages` branch exists but is not used by the current deployment pipeline. The Actions workflow builds from `main` directly.
