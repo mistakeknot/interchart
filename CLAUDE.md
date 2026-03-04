@@ -24,3 +24,8 @@ bash scripts/regenerate-and-deploy.sh /root/projects/Demarch
 - Overlaps shown as convex hull domain overlays, not edges
 - Server-side cron (every 5 min) — no GitHub Actions for regeneration
 - Template variables must be defined before use (no hoisting for `const`/`let`)
+- Workflow views (Swimlane/Sankey/State Machine) use static SVG layout, not force simulation
+- Workflow depth data (`WORKFLOW_TRACE`) is curated in template, not scanned
+- Monkey-patching `rebuildGraph()`/`toggleLayer()` avoids rewriting existing sprint code
+- No d3-sankey CDN — manual sankey layout with cubic bezier paths
+- All workflow code uses `var`/`function` (hoisted), appended after sprint block

@@ -114,27 +114,46 @@ To add a domain: add a rule to `OVERLAP_DOMAIN_RULES` in `scan.js` or a group to
 
 ### Toggle Architecture
 
-The app uses a **unified force graph** with two independent toggle buttons in the toolbar:
+The app uses a **unified force graph** with two independent toggle buttons in the toolbar, plus **workflow view selectors** (visible when Sprint is ON):
 
 | Toggle | Content | Default |
 |--------|---------|---------|
 | **Ecosystem** | D3.js force-directed graph of all Demarch modules | ON |
-| **Sprint** | Sprint phase nodes pinned in horizontal arc + flow arrows | OFF |
+| **Sprint** | Sprint workflow visualization | ON |
 
-Both toggles can be active simultaneously. When both are on, sprint phases become gravitational anchors in the force simulation — plugins cluster near the phases they participate in via `participates-in` edges.
+| Selector | Options | Default | Visible when |
+|----------|---------|---------|-------------|
+| **View Mode** | Force Graph, Swimlane, Sankey Flow, State Machine | Swimlane | Sprint ON |
+| **Depth** | 1 (Plugins), 2 (Skills/Agents), 3 (Full Trace) | 2 | Sprint ON |
 
-**Toggle behavior** (`toggleLayer()`):
+Both toggles can be active simultaneously. When both are on with Force Graph view, sprint phases become gravitational anchors in the force simulation.
+
+**View modes** (mutually exclusive):
+- **Force Graph**: Original pinned phase nodes + `participates-in` edges in D3 force simulation
+- **Swimlane** (default): Phases as columns, entities as rows, artifact flow arrows between phases
+- **Sankey Flow**: Phase columns with proportional flow bands, cubic bezier paths between matching entities
+- **State Machine**: Elliptical arc layout with animated transitions, click-to-expand drill-down
+
+**Depth levels** (switchable, affects all non-force views):
+- **1**: Phase → Plugins only (from `PHASE_PLUGINS`)
+- **2**: Phase → Skills/Agents/MCP (from `PHASE_SKILLS`)
+- **3**: Full trace: hooks, artifacts, MCP tools, data contracts (from `WORKFLOW_TRACE`)
+
+**Toggle behavior** (`toggleLayer()` — monkey-patched):
 - Each button toggles independently (not mutually exclusive)
 - Ecosystem ON/OFF: shows/hides ecosystem nodes, links, search box, sidebar toggle, stats
-- Sprint ON/OFF: injects/removes sprint phase nodes and `participates-in` edges into the simulation, draws/removes flow arrows and gate diamonds
-- `rebuildGraph()` removes old sprint data, re-injects if active, rebuilds D3 selections, restarts simulation
+- Sprint ON/OFF: shows/hides view-mode and depth selectors, dispatches to appropriate renderer
+- `rebuildGraph()` dispatches: force → original path, others → static SVG renderers
 - Sprint phase filter section in sidebar appears when sprint is active
+- Non-force views stop the force simulation and reset zoom for static layout
 
 **Phase-to-plugin mapping** (`PHASE_PLUGINS`): Curated static mapping of which ecosystem nodes participate in each sprint phase. Creates `participates-in` force links when both toggles are active.
 
+**Workflow trace data** (`WORKFLOW_TRACE`): Depth-3 data curated per phase: hooks[], artifactIn, artifactOut, mcpTools[], dataContracts[]. Used by `getPhaseEntities(phaseId, depth)` and `getAllWorkflowEntities(depth)`.
+
 ### UI Layout
 
-- **Toolbar** (top, 44px): "Demarch" title, toggle bar (Ecosystem/Sprint), stats, search box
+- **Toolbar** (top, 44px): "Demarch" title, toggle bar (Ecosystem/Sprint), view-mode select, depth select, stats, search box
 - **Sidebar toggle** (fixed position, top-left): Hamburger button to expand filter sidebar
 - **Filter sidebar** (left, 240px, overlay): Type filters + domain hull toggles + sprint phase toggles (when sprint active). Starts collapsed.
 - **Graph area** (center): Single D3.js force-directed SVG (full viewport)
@@ -188,17 +207,32 @@ The template uses inline `<script>` with `const`/`let` — these are NOT hoisted
 8. D3 setup, simulation, node/link rendering (linkGroup, nodeGroup_eco)
 9. Hull computation (reads domainMembers, nodeById)
 10. Interaction handlers (functions — hoisted)
-11. SPRINT_PHASES, PHASE_COLORS, PHASE_PLUGINS (sprint data — uses var)
+11. SPRINT_PHASES, PHASE_COLORS, PHASE_PLUGINS, PHASE_SKILLS (sprint data — uses var)
+11b. WORKFLOW_DEPTH, WORKFLOW_TRACE, getPhaseEntities(), getAllWorkflowEntities() (workflow data)
 12. Toggle state, sprint layer groups, phase positions, phase filter buttons
 13. Arrow markers (SVG defs)
 14. toggleLayer(), rebuildGraph(), rebuildSimulation() (toggle logic)
 15. Sprint rendering: renderSprintNodes(), drawSprintFlowArrows()
 16. Sprint interactions: selectSprintNode(), showSprintDetail()
+17. currentViewMode, sequenceGroup, sankeyGroup, stateMachineGroup (workflow view state)
+18. changeViewMode(), changeDepth(), updateWorkflowSelectors() (workflow dispatch)
+19. Monkey-patch toggleLayer(), rebuildGraph() for view dispatch
+20. renderSequenceView(), renderSankeyView(), renderStateMachineView() (view renderers)
+21. smDrillDown(), smCloseDrillDown() (state machine interactions)
+22. Workflow view integration: patched deselectAll(), onSearch()
 ```
 
 **Critical:** Moving code blocks out of this order will cause `ReferenceError` and a blank page with no visible error to the user.
 
-**Sprint code safety:** All sprint code uses `var` and function declarations (hoisted) rather than `const`/`let`, and lives at the end of the `<script>` block to avoid ordering issues with the ecosystem code above it.
+**Sprint + workflow code safety:** All sprint and workflow code uses `var` and function declarations (hoisted) rather than `const`/`let`, and lives at the end of the `<script>` block to avoid ordering issues with the ecosystem code above it.
+
+### Workflow View CSS Classes
+
+| Prefix | View | Examples |
+|--------|------|---------|
+| `.sequence-*` | Swimlane | `.sequence-header`, `.sequence-row-label`, `.sequence-cell`, `.sequence-artifact-arrow` |
+| `.sankey-*` | Sankey Flow | `.sankey-band`, `.sankey-flow`, `.sankey-column-header`, `.sankey-entity-label` |
+| `.sm-*` | State Machine | `.sm-phase-node`, `.sm-transition`, `.sm-skip-arc`, `.sm-entity-satellite`, `.sm-active` |
 
 ## Deployment
 
