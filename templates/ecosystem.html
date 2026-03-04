@@ -339,7 +339,6 @@ body {
   bottom: 0;
   overflow: auto;
   background: #0d1117;
-  display: none;
   z-index: 10;
 }
 #workflow-container svg {
@@ -480,7 +479,7 @@ body {
 </div>
 
 <div id="graph"></div>
-<div id="workflow-container"></div>
+<div id="workflow-container" style="display:none"></div>
 
 <div id="detail-panel">
   <button class="close-btn" onclick="closePanel()">&times;</button>
@@ -2220,7 +2219,7 @@ rebuildGraph = function() {
   var useContainer = (currentViewMode === 'sequence' || currentViewMode === 'sankey');
   if (useContainer) {
     graphDiv.style.display = 'none';
-    workflowContainer.style.display = '';
+    workflowContainer.style.display = 'block';
   } else {
     graphDiv.style.display = '';
   }
