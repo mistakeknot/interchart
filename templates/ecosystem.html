@@ -639,7 +639,7 @@ var simulation = d3.forceSimulation(graphNodes)
     if (d.type === 'plugin' || d.type === 'kernel' || d.type === 'service') return Math.min(width, height) * 0.22;
     return Math.min(width, height) * 0.35;
   }, width / 2, height / 2).strength(function(d) {
-    if (d.type === 'monorepo' || d.type === 'ecosystem' || d.type === 'hub') return 0;
+    if (d.type === 'monorepo' || d.type === 'ecosystem' || d.type === 'hub') return 0.8;
     if (d.type === 'sprint-phase') return 0;
     if (d.type === 'plugin' || d.type === 'kernel' || d.type === 'service') return 0.4;
     return 0.5;
