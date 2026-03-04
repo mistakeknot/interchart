@@ -330,6 +330,22 @@ body {
   filter: drop-shadow(0 0 4px rgba(69, 183, 209, 0.5));
 }
 
+/* Workflow container — native scroll overlay for swimlane/sankey */
+#workflow-container {
+  position: fixed;
+  top: 44px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: auto;
+  background: #0d1117;
+  display: none;
+  z-index: 10;
+}
+#workflow-container svg {
+  display: block;
+}
+
 /* Workflow view selectors */
 .workflow-select {
   background: #0d1117;
@@ -464,6 +480,7 @@ body {
 </div>
 
 <div id="graph"></div>
+<div id="workflow-container"></div>
 
 <div id="detail-panel">
   <button class="close-btn" onclick="closePanel()">&times;</button>
@@ -2105,9 +2122,7 @@ function showSprintDetail(phase) {
 
 var currentViewMode = 'sequence'; // 'force', 'sequence', 'sankey', 'statemachine'
 
-// SVG layers for workflow views
-var sequenceGroup = g.append('g').attr('class', 'sequence-layer');
-var sankeyGroup = g.append('g').attr('class', 'sankey-layer');
+// SVG layer for state machine view (rendered in main SVG with zoom/pan)
 var stateMachineGroup = g.append('g').attr('class', 'statemachine-layer');
 
 // Artifact arrow marker
@@ -2150,17 +2165,24 @@ toggleLayer = function(layerName) {
 updateWorkflowSelectors(); // initial state
 
 // ── Patch rebuildGraph to dispatch to workflow renderers ──
+var workflowContainer = document.getElementById('workflow-container');
+var graphDiv = document.getElementById('graph');
 var _origRebuildGraph = rebuildGraph;
+
+function clearWorkflowContainer() {
+  while (workflowContainer.firstChild) workflowContainer.removeChild(workflowContainer.firstChild);
+}
+
 rebuildGraph = function() {
   // Always clear workflow view layers
-  sequenceGroup.selectAll('*').remove();
-  sankeyGroup.selectAll('*').remove();
   stateMachineGroup.selectAll('*').remove();
+  clearWorkflowContainer();
+  workflowContainer.style.display = 'none';
 
   if (!sprintActive || currentViewMode === 'force') {
     // Use original force graph path
+    graphDiv.style.display = '';
     _origRebuildGraph();
-    // Show force graph elements
     linkGroup.style('display', null);
     nodeGroup_eco.style('display', ecosystemActive ? null : 'none');
     sprintNodeGroup.style('display', sprintActive ? null : 'none');
@@ -2192,9 +2214,16 @@ rebuildGraph = function() {
 
   // Stop simulation for static views
   simulation.stop();
-
-  // Reset zoom for static views
   svg.call(zoomBehavior.transform, d3.zoomIdentity);
+
+  // Swimlane and Sankey render into the scroll container; State Machine uses the SVG
+  var useContainer = (currentViewMode === 'sequence' || currentViewMode === 'sankey');
+  if (useContainer) {
+    graphDiv.style.display = 'none';
+    workflowContainer.style.display = '';
+  } else {
+    graphDiv.style.display = '';
+  }
 
   try {
     if (currentViewMode === 'sequence') renderSequenceView();
@@ -2202,9 +2231,10 @@ rebuildGraph = function() {
     else if (currentViewMode === 'statemachine') renderStateMachineView();
   } catch (e) {
     console.error('Workflow view error:', e);
-    // Fallback to force graph
     currentViewMode = 'force';
     document.getElementById('view-mode').value = 'force';
+    workflowContainer.style.display = 'none';
+    graphDiv.style.display = '';
     linkGroup.style('display', null);
     nodeGroup_eco.style('display', ecosystemActive ? null : 'none');
     hullGroup.style('display', null);
@@ -2234,9 +2264,10 @@ function renderSequenceView() {
   var phases = SPRINT_PHASES.filter(function(p) { return activePhases.has(p.id); });
   if (phases.length === 0) return;
 
-  // Layout constants
+  // Layout constants — size to content, not viewport
   var margin = { top: 80, left: 180, right: 40, bottom: 40 };
-  var colWidth = (width - margin.left - margin.right) / phases.length;
+  var minColWidth = 130;
+  var colWidth = Math.max(minColWidth, (width - margin.left - margin.right) / phases.length);
   var rowHeight = 22;
 
   // Build row list: grouped by type
@@ -2256,25 +2287,41 @@ function renderSequenceView() {
     });
   });
 
+  var totalWidth = margin.left + phases.length * colWidth + margin.right;
   var totalHeight = margin.top + rows.length * rowHeight + margin.bottom;
 
+  // Create a fresh SVG sized to content inside the scroll container
+  var seqSvg = d3.select(workflowContainer).append('svg')
+    .attr('width', totalWidth).attr('height', totalHeight);
+
+  // Arrow marker for this SVG
+  var seqDefs = seqSvg.append('defs');
+  seqDefs.append('marker')
+    .attr('id', 'seq-artifact-arrow')
+    .attr('viewBox', '0 0 10 6')
+    .attr('refX', 10).attr('refY', 3)
+    .attr('markerWidth', 8).attr('markerHeight', 5)
+    .attr('orient', 'auto')
+    .append('path').attr('d', 'M0,0 L10,3 L0,6 Z').attr('fill', '#F39C12');
+
+  var sg = seqSvg.append('g');
+
   // Background
-  sequenceGroup.append('rect')
-    .attr('width', width).attr('height', Math.max(height, totalHeight))
+  sg.append('rect')
+    .attr('width', totalWidth).attr('height', totalHeight)
     .attr('fill', '#0d1117');
 
   // Column headers
   phases.forEach(function(phase, ci) {
     var cx = margin.left + ci * colWidth + colWidth / 2;
     var color = PHASE_COLORS[phase.phase] || '#8b949e';
-    var headerG = sequenceGroup.append('g').attr('class', 'sequence-header');
+    var headerG = sg.append('g').attr('class', 'sequence-header');
 
     headerG.append('rect')
       .attr('x', cx - colWidth / 2 + 4).attr('y', 10)
       .attr('width', colWidth - 8).attr('height', 50)
       .attr('fill', color + '18').attr('stroke', color).attr('stroke-width', 1);
 
-    // Color bar at top
     headerG.append('rect')
       .attr('x', cx - colWidth / 2 + 4).attr('y', 10)
       .attr('width', colWidth - 8).attr('height', 4)
@@ -2291,17 +2338,16 @@ function renderSequenceView() {
       .attr('font-size', '9px').attr('fill', color).attr('opacity', 0.7)
       .text(phase.phase);
 
-    // Click handler
     headerG.style('cursor', 'pointer').on('click', function(event) {
       event.stopPropagation();
       showSprintDetail(phase);
     });
 
     // Vertical grid line
-    sequenceGroup.append('line')
+    sg.append('line')
       .attr('class', 'sequence-grid-line')
       .attr('x1', margin.left + ci * colWidth).attr('y1', margin.top - 10)
-      .attr('x2', margin.left + ci * colWidth).attr('y2', Math.max(height, totalHeight));
+      .attr('x2', margin.left + ci * colWidth).attr('y2', totalHeight);
   });
 
   // Row labels and cells
@@ -2309,34 +2355,33 @@ function renderSequenceView() {
     var ry = margin.top + ri * rowHeight;
 
     if (row.type === 'group-label') {
-      sequenceGroup.append('text')
+      sg.append('text')
         .attr('class', 'sequence-group-label')
         .attr('x', 10).attr('y', ry + 15)
         .text(row.label);
 
-      // Horizontal separator
-      sequenceGroup.append('line')
+      sg.append('line')
         .attr('class', 'sequence-grid-line')
         .attr('x1', 0).attr('y1', ry + 2)
-        .attr('x2', width).attr('y2', ry + 2);
+        .attr('x2', totalWidth).attr('y2', ry + 2);
       return;
     }
 
-    // Row label
-    var labelText = sequenceGroup.append('text')
+    var labelText = sg.append('text')
       .attr('class', 'sequence-row-label')
       .attr('x', 20).attr('y', ry + 15)
       .text(row.label.length > 22 ? row.label.substring(0, 20) + '...' : row.label);
 
     labelText.on('click', function(event) {
       event.stopPropagation();
-      if (nodeById[row.id]) navigateTo(row.id);
+      if (nodeById[row.id]) {
+        changeViewMode('force');
+        setTimeout(function() { navigateTo(row.id); }, 100);
+      }
     });
 
-    // Append title for full name on hover
     labelText.append('title').text(row.label);
 
-    // Participation cells
     var color = typeColors[row.entityType] || '#8b949e';
     phases.forEach(function(phase, ci) {
       var entities = getPhaseEntities(phase.id, depth);
@@ -2345,7 +2390,7 @@ function renderSequenceView() {
       if (!participates) return;
 
       var cx = margin.left + ci * colWidth + colWidth / 2;
-      var cell = sequenceGroup.append('circle')
+      var cell = sg.append('circle')
         .attr('class', 'sequence-cell')
         .attr('cx', cx).attr('cy', ry + 11)
         .attr('r', 5)
@@ -2356,11 +2401,11 @@ function renderSequenceView() {
         showSprintDetail(phase);
       });
 
-      cell.append('title').text(row.label + ' → ' + phase.label);
+      cell.append('title').text(row.label + ' \u2192 ' + phase.label);
     });
   });
 
-  // Artifact flow arrows (depth 2+): between consecutive phases
+  // Artifact flow arrows (depth 2+)
   if (depth >= 2) {
     for (var i = 0; i < phases.length - 1; i++) {
       var fromPhase = phases[i];
@@ -2371,14 +2416,14 @@ function renderSequenceView() {
       var x1 = margin.left + i * colWidth + colWidth / 2 + 20;
       var x2 = margin.left + (i + 1) * colWidth + colWidth / 2 - 20;
       var arrowY = 64;
-
-      // Curved arrow
       var midX = (x1 + x2) / 2;
-      sequenceGroup.append('path')
-        .attr('class', 'sequence-artifact-arrow')
-        .attr('d', 'M' + x1 + ',' + arrowY + ' Q' + midX + ',' + (arrowY - 12) + ' ' + x2 + ',' + arrowY);
 
-      sequenceGroup.append('text')
+      sg.append('path')
+        .attr('class', 'sequence-artifact-arrow')
+        .attr('d', 'M' + x1 + ',' + arrowY + ' Q' + midX + ',' + (arrowY - 12) + ' ' + x2 + ',' + arrowY)
+        .attr('marker-end', 'url(#seq-artifact-arrow)');
+
+      sg.append('text')
         .attr('class', 'sequence-artifact-label')
         .attr('x', midX).attr('y', arrowY - 14)
         .attr('text-anchor', 'middle')
@@ -2386,13 +2431,13 @@ function renderSequenceView() {
     }
   }
 
-  // Depth 3: hook badges on cells
+  // Depth 3: hook badges
   if (depth >= 3) {
     phases.forEach(function(phase, ci) {
       var trace = WORKFLOW_TRACE[phase.id];
       if (!trace || trace.hooks.length === 0) return;
       var cx = margin.left + ci * colWidth + colWidth / 2;
-      sequenceGroup.append('text')
+      sg.append('text')
         .attr('class', 'sequence-hook-badge')
         .attr('x', cx).attr('y', margin.top - 4)
         .attr('text-anchor', 'middle')
@@ -2411,13 +2456,21 @@ function renderSankeyView() {
   if (phases.length === 0) return;
 
   var margin = { top: 80, left: 40, right: 40, bottom: 40 };
-  var colWidth = (width - margin.left - margin.right) / phases.length;
-  var availHeight = height - margin.top - margin.bottom;
+  var minColWidth = 130;
+  var colWidth = Math.max(minColWidth, (width - margin.left - margin.right) / phases.length);
+  var totalWidth = margin.left + phases.length * colWidth + margin.right;
+  var totalHeight = Math.max(height, 600);
+  var availHeight = totalHeight - margin.top - margin.bottom;
   var bandPadding = 3;
 
+  // Create fresh SVG in scroll container
+  var skSvg = d3.select(workflowContainer).append('svg')
+    .attr('width', totalWidth).attr('height', totalHeight);
+  var skg = skSvg.append('g');
+
   // Background
-  sankeyGroup.append('rect')
-    .attr('width', width).attr('height', height)
+  skg.append('rect')
+    .attr('width', totalWidth).attr('height', totalHeight)
     .attr('fill', '#0d1117');
 
   // Compute entity weights per phase
@@ -2464,7 +2517,7 @@ function renderSankeyView() {
   phases.forEach(function(phase, ci) {
     var cx = margin.left + ci * colWidth + colWidth / 2;
     var color = PHASE_COLORS[phase.phase] || '#8b949e';
-    var headerG = sankeyGroup.append('g').attr('class', 'sankey-column-header');
+    var headerG = skg.append('g').attr('class', 'sankey-column-header');
 
     headerG.append('rect')
       .attr('x', cx - colWidth / 2 + 4).attr('y', 10)
@@ -2496,7 +2549,7 @@ function renderSankeyView() {
   // Draw bands
   phaseData.forEach(function(pd) {
     pd.bands.forEach(function(b) {
-      var bandG = sankeyGroup.append('g').attr('class', 'sankey-band');
+      var bandG = skg.append('g').attr('class', 'sankey-band');
 
       bandG.append('rect')
         .attr('x', b.x).attr('y', b.y)
@@ -2504,7 +2557,6 @@ function renderSankeyView() {
         .attr('fill', b.color).attr('fill-opacity', 0.7)
         .attr('rx', 2);
 
-      // Label inside band if tall enough
       if (b.h >= 12) {
         bandG.append('text')
           .attr('class', 'sankey-entity-label')
@@ -2516,22 +2568,25 @@ function renderSankeyView() {
 
       bandG.on('click', function(event) {
         event.stopPropagation();
-        if (nodeById[b.id]) navigateTo(b.id);
+        if (nodeById[b.id]) {
+          changeViewMode('force');
+          setTimeout(function() { navigateTo(b.id); }, 100);
+        }
       });
 
       // Hover: highlight all bands with same ID
       bandG.on('mouseenter', function() {
-        sankeyGroup.selectAll('.sankey-band rect').attr('fill-opacity', function() {
+        skg.selectAll('.sankey-band rect').attr('fill-opacity', function() {
           var rect = d3.select(this.parentNode);
           return rect.select('title').text().indexOf(b.label) === 0 ? 0.9 : 0.3;
         });
-        sankeyGroup.selectAll('.sankey-flow').attr('fill-opacity', function() {
+        skg.selectAll('.sankey-flow').attr('fill-opacity', function() {
           return d3.select(this).attr('data-id') === b.id ? 0.35 : 0.05;
         });
       });
       bandG.on('mouseleave', function() {
-        sankeyGroup.selectAll('.sankey-band rect').attr('fill-opacity', 0.7);
-        sankeyGroup.selectAll('.sankey-flow').attr('fill-opacity', 0.15);
+        skg.selectAll('.sankey-band rect').attr('fill-opacity', 0.7);
+        skg.selectAll('.sankey-flow').attr('fill-opacity', 0.15);
       });
     });
   });
@@ -2542,7 +2597,6 @@ function renderSankeyView() {
     var toCol = phaseData[ci + 1];
 
     fromCol.bands.forEach(function(fromBand) {
-      // Find matching band in next column
       var toBand = null;
       toCol.bands.forEach(function(b) { if (b.id === fromBand.id) toBand = b; });
       if (!toBand) return;
@@ -2561,7 +2615,7 @@ function renderSankeyView() {
         ' C' + mx + ',' + y1bot + ' ' + mx + ',' + y0bot + ' ' + x0 + ',' + y0bot +
         ' Z';
 
-      sankeyGroup.append('path')
+      skg.append('path')
         .attr('class', 'sankey-flow')
         .attr('d', pathD)
         .attr('fill', fromBand.color)
@@ -2858,8 +2912,9 @@ onSearch = function(query) {
   searchQuery = query.toLowerCase().trim();
   if (!searchQuery) return;
 
+  var wc = d3.select(workflowContainer);
   if (currentViewMode === 'sequence') {
-    sequenceGroup.selectAll('.sequence-row-label')
+    wc.selectAll('.sequence-row-label')
       .attr('fill', function() {
         var text = d3.select(this).text().toLowerCase();
         return text.includes(searchQuery) ? '#58a6ff' : '#c9d1d9';
@@ -2869,7 +2924,7 @@ onSearch = function(query) {
         return text.includes(searchQuery) ? '700' : 'normal';
       });
   } else if (currentViewMode === 'sankey') {
-    sankeyGroup.selectAll('.sankey-band rect').attr('fill-opacity', function() {
+    wc.selectAll('.sankey-band rect').attr('fill-opacity', function() {
       var title = d3.select(this.parentNode).select('title').text().toLowerCase();
       return title.includes(searchQuery) ? 0.9 : 0.2;
     });
