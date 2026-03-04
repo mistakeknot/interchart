@@ -330,6 +330,87 @@ body {
   filter: drop-shadow(0 0 4px rgba(69, 183, 209, 0.5));
 }
 
+/* Workflow view selectors */
+.workflow-select {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+}
+.workflow-select:focus { border-color: #58a6ff; }
+.workflow-select-label {
+  font-size: 10px;
+  color: #8b949e;
+  margin-right: 2px;
+}
+
+/* Sequence/Swimlane view */
+.sequence-header text { font-size: 12px; font-weight: 600; fill: #f0f6fc; }
+.sequence-header rect { rx: 4; ry: 4; }
+.sequence-row-label { font-size: 10px; fill: #c9d1d9; cursor: pointer; }
+.sequence-row-label:hover { fill: #58a6ff; }
+.sequence-cell { cursor: pointer; transition: r 0.15s; }
+.sequence-cell:hover { filter: brightness(1.4); }
+.sequence-artifact-arrow {
+  fill: none;
+  stroke: #F39C12;
+  stroke-width: 1.5;
+  stroke-opacity: 0.6;
+  marker-end: url(#artifact-arrow);
+}
+.sequence-artifact-label { font-size: 8px; fill: #F39C12; fill-opacity: 0.7; }
+.sequence-group-label { font-size: 9px; fill: #8b949e; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.sequence-hook-badge {
+  font-size: 7px; fill: #E74C3C; font-weight: 600;
+}
+.sequence-grid-line { stroke: #21262d; stroke-width: 1; }
+
+/* Sankey flow view */
+.sankey-band { cursor: pointer; transition: fill-opacity 0.15s; }
+.sankey-band:hover { fill-opacity: 0.9; }
+.sankey-flow { pointer-events: none; }
+.sankey-flow:hover { fill-opacity: 0.4; pointer-events: auto; }
+.sankey-column-header text { font-size: 12px; font-weight: 600; fill: #f0f6fc; }
+.sankey-column-header rect { rx: 4; ry: 4; }
+.sankey-entity-label { font-size: 9px; fill: #c9d1d9; pointer-events: none; }
+
+/* State machine view */
+.sm-phase-node rect { cursor: pointer; transition: filter 0.15s; }
+.sm-phase-node rect:hover { filter: brightness(1.3); }
+.sm-phase-node text { pointer-events: none; user-select: none; }
+.sm-phase-node.sm-active rect {
+  filter: drop-shadow(0 0 12px rgba(88, 166, 255, 0.6));
+}
+.sm-transition {
+  fill: none;
+  stroke: #58a6ff;
+  stroke-width: 2;
+  marker-end: url(#sprint-arrow);
+}
+.sm-transition-animated {
+  stroke-dasharray: 8 4;
+  animation: sm-flow-pulse 1.5s linear infinite;
+}
+.sm-skip-arc {
+  fill: none;
+  stroke: #F39C12;
+  stroke-width: 2;
+  stroke-dasharray: 6 3;
+  marker-end: url(#sprint-skip-arrow);
+}
+.sm-gate { pointer-events: none; }
+.sm-entity-satellite { cursor: pointer; transition: opacity 0.15s; }
+.sm-entity-satellite:hover { opacity: 1 !important; }
+.sm-entity-line { stroke: #30363d; stroke-width: 1; stroke-dasharray: 2 2; pointer-events: none; }
+@keyframes sm-flow-pulse {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -24; }
+}
+
 </style>
 </head>
 <body>
@@ -341,6 +422,19 @@ body {
     <button class="toggle-btn active" id="toggle-sprint" onclick="toggleLayer('sprint')">Sprint</button>
     <button class="toggle-btn" id="toggle-hooks" onclick="toggleHookEdges()" style="font-size:11px;padding:4px 8px;opacity:0.6">Hooks</button>
   </div>
+  <span class="workflow-select-label" id="view-mode-label" style="display:none">View:</span>
+  <select class="workflow-select" id="view-mode" style="display:none" onchange="changeViewMode(this.value)">
+    <option value="force">Force Graph</option>
+    <option value="sequence" selected>Swimlane</option>
+    <option value="sankey">Sankey Flow</option>
+    <option value="statemachine">State Machine</option>
+  </select>
+  <span class="workflow-select-label" id="depth-label" style="display:none">Depth:</span>
+  <select class="workflow-select" id="depth-level" style="display:none" onchange="changeDepth(parseInt(this.value))">
+    <option value="1">1 — Plugins</option>
+    <option value="2" selected>2 — Skills/Agents</option>
+    <option value="3">3 — Full Trace</option>
+  </select>
   <span class="stats" id="stats"></span>
   <input type="text" id="search-box" placeholder="Search nodes..." oninput="onSearch(this.value)">
 </div>
@@ -380,7 +474,7 @@ body {
 <script>
 // DATA_PLACEHOLDER is replaced by the generator with scanned JSON
 const data = {
-  "generated": "2026-03-03T22:36:44.766Z",
+  "generated": "2026-03-04T02:56:27.839Z",
   "stats": {
     "nodes": 188,
     "edges": 262,
@@ -726,7 +820,7 @@ const data = {
       "label": "interflux",
       "description": "Multi-agent review and research with scored triage, domain detection, content slicing, intermediate finding sharing, and",
       "meta": {
-        "version": "0.2.35",
+        "version": "0.2.36",
         "path": "interverse/interflux",
         "repoUrl": "https://github.com/mistakeknot/interflux",
         "commandCount": 4
@@ -2203,7 +2297,7 @@ const data = {
       "label": "clavain",
       "description": "Self-improving agent rig: codifies product and engineering discipline into composable workflows from brainstorm to ship",
       "meta": {
-        "version": "0.6.135",
+        "version": "0.6.137",
         "path": "os/clavain",
         "repoUrl": "https://github.com/mistakeknot/Clavain",
         "commandCount": 45
@@ -5282,6 +5376,69 @@ var PHASE_SKILLS = {
   'ship':          { skills: ['clavain:landing-a-change'], agents: [], mcp: [] }
 };
 
+// ═══════════════════════════════════════════════════════
+// WORKFLOW DEPTH DATA + HELPERS
+// ═══════════════════════════════════════════════════════
+
+var WORKFLOW_DEPTH = 2; // 1=plugins, 2=skills/agents/mcp, 3=full trace
+
+// Depth-3 trace data: hooks, artifact I/O, MCP tools, data contracts per phase
+var WORKFLOW_TRACE = {
+  'brainstorm':    { hooks: ['PreToolUse', 'PostToolUse'], artifactIn: null, artifactOut: 'brainstorm doc', mcpTools: [], dataContracts: ['docs/brainstorms/*.md'] },
+  'strategize':    { hooks: ['PreToolUse'], artifactIn: 'brainstorm doc', artifactOut: 'PRD + feature beads', mcpTools: ['interkasten:interkasten_sync'], dataContracts: ['docs/prd/*.md', '.beads/'] },
+  'write-plan':    { hooks: ['PreToolUse'], artifactIn: 'PRD', artifactOut: 'implementation plan', mcpTools: [], dataContracts: ['docs/plans/*.md'] },
+  'review-plan':   { hooks: ['PostToolUse', 'PreToolUse'], artifactIn: 'implementation plan', artifactOut: 'review verdict', mcpTools: ['interspect:review_events'], dataContracts: ['.claude/reviews/*.md'] },
+  'execute':       { hooks: ['PreToolUse', 'PostToolUse', 'SessionStart'], artifactIn: 'implementation plan', artifactOut: 'code changes', mcpTools: ['interlock:reserve_files', 'interlock:release_files'], dataContracts: ['source files', '.beads/'] },
+  'test':          { hooks: ['PostToolUse'], artifactIn: 'code changes', artifactOut: 'test results', mcpTools: [], dataContracts: ['test output', 'coverage reports'] },
+  'quality-gates': { hooks: ['PostToolUse', 'PreToolUse'], artifactIn: 'code changes + test results', artifactOut: 'review reports', mcpTools: ['interspect:review_events', 'intercheck:status'], dataContracts: ['.claude/reviews/*.md', 'findings JSON'] },
+  'resolve':       { hooks: ['PreToolUse'], artifactIn: 'review reports', artifactOut: 'resolved findings', mcpTools: [], dataContracts: ['source files'] },
+  'reflect':       { hooks: ['PostToolUse'], artifactIn: 'resolved findings', artifactOut: 'learnings doc', mcpTools: ['interfluence:corpus_add'], dataContracts: ['docs/solutions/*.md', 'memory files'] },
+  'ship':          { hooks: ['PostToolUse', 'SessionStart'], artifactIn: 'learnings doc', artifactOut: 'merged commits', mcpTools: ['interlock:release_all'], dataContracts: ['git log', '.beads/'] }
+};
+
+// Get entities for a phase at the given depth level
+function getPhaseEntities(phaseId, depth) {
+  var result = { plugins: [], skills: [], agents: [], mcp: [], hooks: [], artifacts: { in: null, out: null }, contracts: [] };
+  // Depth 1: plugins only
+  if (PHASE_PLUGINS[phaseId]) {
+    result.plugins = PHASE_PLUGINS[phaseId].slice();
+  }
+  // Depth 2: add skills, agents, MCP servers
+  if (depth >= 2 && PHASE_SKILLS[phaseId]) {
+    var entry = PHASE_SKILLS[phaseId];
+    result.skills = entry.skills.slice();
+    result.agents = entry.agents.slice();
+    result.mcp = entry.mcp.slice();
+  }
+  // Depth 3: add hooks, artifacts, MCP tools, data contracts
+  if (depth >= 3 && WORKFLOW_TRACE[phaseId]) {
+    var trace = WORKFLOW_TRACE[phaseId];
+    result.hooks = trace.hooks.slice();
+    result.artifacts = { in: trace.artifactIn, out: trace.artifactOut };
+    result.mcp = result.mcp.concat(trace.mcpTools);
+    result.contracts = trace.dataContracts.slice();
+  }
+  return result;
+}
+
+// Get all unique entities across all phases for row computation
+function getAllWorkflowEntities(depth) {
+  var all = { plugins: [], skills: [], agents: [], mcp: [], hooks: [] };
+  var seen = { plugins: {}, skills: {}, agents: {}, mcp: {}, hooks: {} };
+  SPRINT_PHASES.forEach(function(phase) {
+    var entities = getPhaseEntities(phase.id, depth);
+    ['plugins', 'skills', 'agents', 'mcp', 'hooks'].forEach(function(key) {
+      entities[key].forEach(function(id) {
+        if (!seen[key][id]) {
+          seen[key][id] = true;
+          all[key].push(id);
+        }
+      });
+    });
+  });
+  return all;
+}
+
 // Reverse lookup: nodeId -> [phaseId, ...] (from both PHASE_PLUGINS and PHASE_SKILLS)
 var nodeToPhases = {};
 function addNodePhase(nodeId, phaseId) {
@@ -6038,6 +6195,780 @@ function showSprintDetail(phase) {
 
   panel.classList.add('open');
 }
+
+// ═══════════════════════════════════════════════════════
+// WORKFLOW VISUALIZATION VIEWS
+// ═══════════════════════════════════════════════════════
+
+var currentViewMode = 'sequence'; // 'force', 'sequence', 'sankey', 'statemachine'
+
+// SVG layers for workflow views
+var sequenceGroup = g.append('g').attr('class', 'sequence-layer');
+var sankeyGroup = g.append('g').attr('class', 'sankey-layer');
+var stateMachineGroup = g.append('g').attr('class', 'statemachine-layer');
+
+// Artifact arrow marker
+defs.append('marker')
+  .attr('id', 'artifact-arrow')
+  .attr('viewBox', '0 0 10 6')
+  .attr('refX', 10).attr('refY', 3)
+  .attr('markerWidth', 8).attr('markerHeight', 5)
+  .attr('orient', 'auto')
+  .append('path')
+  .attr('d', 'M0,0 L10,3 L0,6 Z')
+  .attr('fill', '#F39C12');
+
+function changeViewMode(mode) {
+  currentViewMode = mode;
+  document.getElementById('view-mode').value = mode;
+  rebuildGraph();
+}
+
+function changeDepth(level) {
+  WORKFLOW_DEPTH = level;
+  document.getElementById('depth-level').value = level;
+  rebuildGraph();
+}
+
+// Show/hide workflow selectors based on sprint state
+function updateWorkflowSelectors() {
+  var show = sprintActive;
+  ['view-mode-label', 'view-mode', 'depth-label', 'depth-level'].forEach(function(id) {
+    document.getElementById(id).style.display = show ? '' : 'none';
+  });
+}
+
+// ── Patch toggleLayer to show/hide workflow selectors ──
+var _origToggleLayer = toggleLayer;
+toggleLayer = function(layerName) {
+  _origToggleLayer(layerName);
+  updateWorkflowSelectors();
+};
+updateWorkflowSelectors(); // initial state
+
+// ── Patch rebuildGraph to dispatch to workflow renderers ──
+var _origRebuildGraph = rebuildGraph;
+rebuildGraph = function() {
+  // Always clear workflow view layers
+  sequenceGroup.selectAll('*').remove();
+  sankeyGroup.selectAll('*').remove();
+  stateMachineGroup.selectAll('*').remove();
+
+  if (!sprintActive || currentViewMode === 'force') {
+    // Use original force graph path
+    _origRebuildGraph();
+    // Show force graph elements
+    linkGroup.style('display', null);
+    nodeGroup_eco.style('display', ecosystemActive ? null : 'none');
+    sprintNodeGroup.style('display', sprintActive ? null : 'none');
+    sprintFlowGroup.style('display', sprintActive ? null : 'none');
+    return;
+  }
+
+  // Hide force graph elements for non-force views
+  sprintNodeGroup.selectAll('*').remove();
+  sprintFlowGroup.selectAll('*').remove();
+  linkGroup.style('display', 'none');
+  nodeGroup_eco.style('display', 'none');
+  sprintNodeGroup.style('display', 'none');
+  sprintFlowGroup.style('display', 'none');
+  hullGroup.style('display', 'none');
+  hullLabelGroup.style('display', 'none');
+  spotlightGroup.selectAll('*').remove();
+
+  // Remove old sprint data from simulation
+  for (var i = graphNodes.length - 1; i >= 0; i--) {
+    if (graphNodes[i]._sprint) graphNodes.splice(i, 1);
+  }
+  for (var i = graphLinks.length - 1; i >= 0; i--) {
+    if (graphLinks[i]._sprint) graphLinks.splice(i, 1);
+  }
+  SPRINT_PHASES.forEach(function(p) { delete nodeById['sprint-' + p.id]; });
+  sprintNodes = [];
+  sprintLinks = [];
+
+  // Stop simulation for static views
+  simulation.stop();
+
+  // Reset zoom for static views
+  svg.call(zoomBehavior.transform, d3.zoomIdentity);
+
+  try {
+    if (currentViewMode === 'sequence') renderSequenceView();
+    else if (currentViewMode === 'sankey') renderSankeyView();
+    else if (currentViewMode === 'statemachine') renderStateMachineView();
+  } catch (e) {
+    console.error('Workflow view error:', e);
+    // Fallback to force graph
+    currentViewMode = 'force';
+    document.getElementById('view-mode').value = 'force';
+    linkGroup.style('display', null);
+    nodeGroup_eco.style('display', ecosystemActive ? null : 'none');
+    hullGroup.style('display', null);
+    hullLabelGroup.style('display', null);
+    _origRebuildGraph();
+  }
+};
+
+// Restore hull visibility when switching back to force
+var _origRebuildGraph2 = _origRebuildGraph;
+_origRebuildGraph = function() {
+  hullGroup.style('display', null);
+  hullLabelGroup.style('display', null);
+  _origRebuildGraph2();
+};
+
+// ═══════════════════════════════════════════════════════
+// SEQUENCE / SWIMLANE VIEW
+// ═══════════════════════════════════════════════════════
+
+function renderSequenceView() {
+  var depth = WORKFLOW_DEPTH;
+  var allEntities = getAllWorkflowEntities(depth);
+  var phases = SPRINT_PHASES.filter(function(p) { return activePhases.has(p.id); });
+  if (phases.length === 0) return;
+
+  // Layout constants
+  var margin = { top: 80, left: 180, right: 40, bottom: 40 };
+  var colWidth = (width - margin.left - margin.right) / phases.length;
+  var rowHeight = 22;
+
+  // Build row list: grouped by type
+  var rows = [];
+  var typeOrder = ['plugins', 'skills', 'agents', 'mcp', 'hooks'];
+  var typeLabels = { plugins: 'Plugins', skills: 'Skills', agents: 'Agents', mcp: 'MCP', hooks: 'Hooks' };
+  var typeColors = { plugins: '#4A90D9', skills: '#50C878', agents: '#FF8C42', mcp: '#9B59B6', hooks: '#E74C3C' };
+
+  typeOrder.forEach(function(type) {
+    if (allEntities[type].length === 0) return;
+    rows.push({ type: 'group-label', label: typeLabels[type], entityType: type });
+    allEntities[type].forEach(function(id) {
+      var label = id;
+      var n = nodeById[id];
+      if (n) label = n.label;
+      rows.push({ type: 'entity', id: id, label: label, entityType: type });
+    });
+  });
+
+  var totalHeight = margin.top + rows.length * rowHeight + margin.bottom;
+
+  // Background
+  sequenceGroup.append('rect')
+    .attr('width', width).attr('height', Math.max(height, totalHeight))
+    .attr('fill', '#0d1117');
+
+  // Column headers
+  phases.forEach(function(phase, ci) {
+    var cx = margin.left + ci * colWidth + colWidth / 2;
+    var color = PHASE_COLORS[phase.phase] || '#8b949e';
+    var headerG = sequenceGroup.append('g').attr('class', 'sequence-header');
+
+    headerG.append('rect')
+      .attr('x', cx - colWidth / 2 + 4).attr('y', 10)
+      .attr('width', colWidth - 8).attr('height', 50)
+      .attr('fill', color + '18').attr('stroke', color).attr('stroke-width', 1);
+
+    // Color bar at top
+    headerG.append('rect')
+      .attr('x', cx - colWidth / 2 + 4).attr('y', 10)
+      .attr('width', colWidth - 8).attr('height', 4)
+      .attr('fill', color);
+
+    headerG.append('text')
+      .attr('x', cx).attr('y', 32)
+      .attr('text-anchor', 'middle')
+      .text(phase.step + '. ' + phase.label);
+
+    headerG.append('text')
+      .attr('x', cx).attr('y', 48)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '9px').attr('fill', color).attr('opacity', 0.7)
+      .text(phase.phase);
+
+    // Click handler
+    headerG.style('cursor', 'pointer').on('click', function(event) {
+      event.stopPropagation();
+      showSprintDetail(phase);
+    });
+
+    // Vertical grid line
+    sequenceGroup.append('line')
+      .attr('class', 'sequence-grid-line')
+      .attr('x1', margin.left + ci * colWidth).attr('y1', margin.top - 10)
+      .attr('x2', margin.left + ci * colWidth).attr('y2', Math.max(height, totalHeight));
+  });
+
+  // Row labels and cells
+  rows.forEach(function(row, ri) {
+    var ry = margin.top + ri * rowHeight;
+
+    if (row.type === 'group-label') {
+      sequenceGroup.append('text')
+        .attr('class', 'sequence-group-label')
+        .attr('x', 10).attr('y', ry + 15)
+        .text(row.label);
+
+      // Horizontal separator
+      sequenceGroup.append('line')
+        .attr('class', 'sequence-grid-line')
+        .attr('x1', 0).attr('y1', ry + 2)
+        .attr('x2', width).attr('y2', ry + 2);
+      return;
+    }
+
+    // Row label
+    var labelText = sequenceGroup.append('text')
+      .attr('class', 'sequence-row-label')
+      .attr('x', 20).attr('y', ry + 15)
+      .text(row.label.length > 22 ? row.label.substring(0, 20) + '...' : row.label);
+
+    labelText.on('click', function(event) {
+      event.stopPropagation();
+      if (nodeById[row.id]) navigateTo(row.id);
+    });
+
+    // Append title for full name on hover
+    labelText.append('title').text(row.label);
+
+    // Participation cells
+    var color = typeColors[row.entityType] || '#8b949e';
+    phases.forEach(function(phase, ci) {
+      var entities = getPhaseEntities(phase.id, depth);
+      var list = entities[row.entityType] || [];
+      var participates = list.indexOf(row.id) !== -1;
+      if (!participates) return;
+
+      var cx = margin.left + ci * colWidth + colWidth / 2;
+      var cell = sequenceGroup.append('circle')
+        .attr('class', 'sequence-cell')
+        .attr('cx', cx).attr('cy', ry + 11)
+        .attr('r', 5)
+        .attr('fill', color).attr('opacity', 0.8);
+
+      cell.on('click', function(event) {
+        event.stopPropagation();
+        showSprintDetail(phase);
+      });
+
+      cell.append('title').text(row.label + ' → ' + phase.label);
+    });
+  });
+
+  // Artifact flow arrows (depth 2+): between consecutive phases
+  if (depth >= 2) {
+    for (var i = 0; i < phases.length - 1; i++) {
+      var fromPhase = phases[i];
+      var toPhase = phases[i + 1];
+      var trace = WORKFLOW_TRACE[fromPhase.id];
+      if (!trace || !trace.artifactOut) continue;
+
+      var x1 = margin.left + i * colWidth + colWidth / 2 + 20;
+      var x2 = margin.left + (i + 1) * colWidth + colWidth / 2 - 20;
+      var arrowY = 64;
+
+      // Curved arrow
+      var midX = (x1 + x2) / 2;
+      sequenceGroup.append('path')
+        .attr('class', 'sequence-artifact-arrow')
+        .attr('d', 'M' + x1 + ',' + arrowY + ' Q' + midX + ',' + (arrowY - 12) + ' ' + x2 + ',' + arrowY);
+
+      sequenceGroup.append('text')
+        .attr('class', 'sequence-artifact-label')
+        .attr('x', midX).attr('y', arrowY - 14)
+        .attr('text-anchor', 'middle')
+        .text(trace.artifactOut);
+    }
+  }
+
+  // Depth 3: hook badges on cells
+  if (depth >= 3) {
+    phases.forEach(function(phase, ci) {
+      var trace = WORKFLOW_TRACE[phase.id];
+      if (!trace || trace.hooks.length === 0) return;
+      var cx = margin.left + ci * colWidth + colWidth / 2;
+      sequenceGroup.append('text')
+        .attr('class', 'sequence-hook-badge')
+        .attr('x', cx).attr('y', margin.top - 4)
+        .attr('text-anchor', 'middle')
+        .text(trace.hooks.join(', '));
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// SANKEY FLOW VIEW
+// ═══════════════════════════════════════════════════════
+
+function renderSankeyView() {
+  var depth = WORKFLOW_DEPTH;
+  var phases = SPRINT_PHASES.filter(function(p) { return activePhases.has(p.id); });
+  if (phases.length === 0) return;
+
+  var margin = { top: 80, left: 40, right: 40, bottom: 40 };
+  var colWidth = (width - margin.left - margin.right) / phases.length;
+  var availHeight = height - margin.top - margin.bottom;
+  var bandPadding = 3;
+
+  // Background
+  sankeyGroup.append('rect')
+    .attr('width', width).attr('height', height)
+    .attr('fill', '#0d1117');
+
+  // Compute entity weights per phase
+  var phaseData = phases.map(function(phase) {
+    var entities = getPhaseEntities(phase.id, depth);
+    var bands = [];
+    var typeOrder = ['plugins', 'skills', 'agents', 'mcp', 'hooks'];
+    var typeColors = { plugins: '#4A90D9', skills: '#50C878', agents: '#FF8C42', mcp: '#9B59B6', hooks: '#E74C3C' };
+
+    typeOrder.forEach(function(type) {
+      entities[type].forEach(function(id) {
+        var weight = 1;
+        if (depth >= 2 && type === 'plugins' && PHASE_SKILLS[phase.id]) {
+          var sk = PHASE_SKILLS[phase.id];
+          weight = 1 + sk.skills.length + sk.agents.length + sk.mcp.length;
+        }
+        var label = id;
+        var n = nodeById[id];
+        if (n) label = n.label;
+        bands.push({ id: id, label: label, type: type, weight: weight, color: typeColors[type] || '#8b949e' });
+      });
+    });
+    return { phase: phase, bands: bands };
+  });
+
+  // Normalize: compute y positions for bands in each column
+  phaseData.forEach(function(pd, ci) {
+    var totalWeight = 0;
+    pd.bands.forEach(function(b) { totalWeight += b.weight; });
+    if (totalWeight === 0) totalWeight = 1;
+
+    var yScale = (availHeight - pd.bands.length * bandPadding) / totalWeight;
+    var cy = margin.top;
+    pd.bands.forEach(function(b) {
+      b.y = cy;
+      b.h = Math.max(4, b.weight * yScale);
+      b.x = margin.left + ci * colWidth + 10;
+      b.w = colWidth - 20;
+      cy += b.h + bandPadding;
+    });
+  });
+
+  // Draw column headers
+  phases.forEach(function(phase, ci) {
+    var cx = margin.left + ci * colWidth + colWidth / 2;
+    var color = PHASE_COLORS[phase.phase] || '#8b949e';
+    var headerG = sankeyGroup.append('g').attr('class', 'sankey-column-header');
+
+    headerG.append('rect')
+      .attr('x', cx - colWidth / 2 + 4).attr('y', 10)
+      .attr('width', colWidth - 8).attr('height', 50)
+      .attr('fill', color + '18').attr('stroke', color).attr('stroke-width', 1);
+
+    headerG.append('rect')
+      .attr('x', cx - colWidth / 2 + 4).attr('y', 10)
+      .attr('width', colWidth - 8).attr('height', 4)
+      .attr('fill', color);
+
+    headerG.append('text')
+      .attr('x', cx).attr('y', 32)
+      .attr('text-anchor', 'middle')
+      .text(phase.step + '. ' + phase.label);
+
+    headerG.append('text')
+      .attr('x', cx).attr('y', 48)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '9px').attr('fill', color).attr('opacity', 0.7)
+      .text(phase.phase);
+
+    headerG.style('cursor', 'pointer').on('click', function(event) {
+      event.stopPropagation();
+      showSprintDetail(phase);
+    });
+  });
+
+  // Draw bands
+  phaseData.forEach(function(pd) {
+    pd.bands.forEach(function(b) {
+      var bandG = sankeyGroup.append('g').attr('class', 'sankey-band');
+
+      bandG.append('rect')
+        .attr('x', b.x).attr('y', b.y)
+        .attr('width', b.w).attr('height', b.h)
+        .attr('fill', b.color).attr('fill-opacity', 0.7)
+        .attr('rx', 2);
+
+      // Label inside band if tall enough
+      if (b.h >= 12) {
+        bandG.append('text')
+          .attr('class', 'sankey-entity-label')
+          .attr('x', b.x + 6).attr('y', b.y + b.h / 2 + 3)
+          .text(b.label.length > 18 ? b.label.substring(0, 16) + '..' : b.label);
+      }
+
+      bandG.append('title').text(b.label + ' (' + b.type + ')');
+
+      bandG.on('click', function(event) {
+        event.stopPropagation();
+        if (nodeById[b.id]) navigateTo(b.id);
+      });
+
+      // Hover: highlight all bands with same ID
+      bandG.on('mouseenter', function() {
+        sankeyGroup.selectAll('.sankey-band rect').attr('fill-opacity', function() {
+          var rect = d3.select(this.parentNode);
+          return rect.select('title').text().indexOf(b.label) === 0 ? 0.9 : 0.3;
+        });
+        sankeyGroup.selectAll('.sankey-flow').attr('fill-opacity', function() {
+          return d3.select(this).attr('data-id') === b.id ? 0.35 : 0.05;
+        });
+      });
+      bandG.on('mouseleave', function() {
+        sankeyGroup.selectAll('.sankey-band rect').attr('fill-opacity', 0.7);
+        sankeyGroup.selectAll('.sankey-flow').attr('fill-opacity', 0.15);
+      });
+    });
+  });
+
+  // Draw flow paths between adjacent columns
+  for (var ci = 0; ci < phaseData.length - 1; ci++) {
+    var fromCol = phaseData[ci];
+    var toCol = phaseData[ci + 1];
+
+    fromCol.bands.forEach(function(fromBand) {
+      // Find matching band in next column
+      var toBand = null;
+      toCol.bands.forEach(function(b) { if (b.id === fromBand.id) toBand = b; });
+      if (!toBand) return;
+
+      var x0 = fromBand.x + fromBand.w;
+      var x1 = toBand.x;
+      var y0top = fromBand.y;
+      var y0bot = fromBand.y + fromBand.h;
+      var y1top = toBand.y;
+      var y1bot = toBand.y + toBand.h;
+      var mx = (x0 + x1) / 2;
+
+      var pathD = 'M' + x0 + ',' + y0top +
+        ' C' + mx + ',' + y0top + ' ' + mx + ',' + y1top + ' ' + x1 + ',' + y1top +
+        ' L' + x1 + ',' + y1bot +
+        ' C' + mx + ',' + y1bot + ' ' + mx + ',' + y0bot + ' ' + x0 + ',' + y0bot +
+        ' Z';
+
+      sankeyGroup.append('path')
+        .attr('class', 'sankey-flow')
+        .attr('d', pathD)
+        .attr('fill', fromBand.color)
+        .attr('fill-opacity', 0.15)
+        .attr('data-id', fromBand.id);
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// STATE MACHINE VIEW
+// ═══════════════════════════════════════════════════════
+
+var smActivePhase = null; // currently expanded phase in state machine view
+
+function renderStateMachineView() {
+  var depth = WORKFLOW_DEPTH;
+  var phases = SPRINT_PHASES.filter(function(p) { return activePhases.has(p.id); });
+  if (phases.length === 0) return;
+
+  smActivePhase = null;
+
+  // Background
+  stateMachineGroup.append('rect')
+    .attr('width', width).attr('height', height)
+    .attr('fill', '#0d1117');
+
+  // Elliptical layout — larger radius than force graph
+  var cx = width / 2;
+  var cy = height / 2;
+  var rx = Math.min(width * 0.38, 500);
+  var ry = Math.min(height * 0.35, 350);
+  var nodeW = 200, nodeH = 80;
+
+  // Compute positions for active phases
+  var phasePos = {};
+  var n = phases.length;
+  phases.forEach(function(phase, i) {
+    var angle = -Math.PI / 2 + (i / n) * 2 * Math.PI;
+    phasePos[phase.id] = {
+      x: cx + rx * Math.cos(angle),
+      y: cy + ry * Math.sin(angle),
+      angle: angle
+    };
+  });
+
+  // Draw transition arrows between consecutive phases
+  for (var i = 0; i < phases.length - 1; i++) {
+    var from = phasePos[phases[i].id];
+    var to = phasePos[phases[i + 1].id];
+    var dx = to.x - from.x;
+    var dy = to.y - from.y;
+    var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    var nx = dx / dist, ny = dy / dist;
+
+    var sx = from.x + nx * (nodeW / 2 + 8);
+    var sy = from.y + ny * (nodeH / 2 + 8);
+    var ex = to.x - nx * (nodeW / 2 + 8);
+    var ey = to.y - ny * (nodeH / 2 + 8);
+
+    stateMachineGroup.append('line')
+      .attr('class', 'sm-transition sm-transition-animated')
+      .attr('x1', sx).attr('y1', sy)
+      .attr('x2', ex).attr('y2', ey);
+
+    // Gate diamond
+    if (phases[i + 1].gate) {
+      var gateColor = phases[i + 1].gate.type === 'hard' ? '#E74C3C' : '#F39C12';
+      var gx = (sx + ex) / 2;
+      var gy = (sy + ey) / 2;
+      var ds = 10;
+      var gateG = stateMachineGroup.append('g').attr('class', 'sm-gate');
+      gateG.append('path')
+        .attr('d', 'M' + gx + ',' + (gy - ds) +
+          ' L' + (gx + ds) + ',' + gy +
+          ' L' + gx + ',' + (gy + ds) +
+          ' L' + (gx - ds) + ',' + gy + ' Z')
+        .attr('fill', gateColor).attr('stroke', '#0d1117').attr('stroke-width', 1);
+      gateG.append('text')
+        .attr('x', gx).attr('y', gy - ds - 6)
+        .attr('text-anchor', 'middle')
+        .attr('fill', gateColor).attr('font-size', '8px')
+        .text(phases[i + 1].gate.label);
+    }
+  }
+
+  // Skip arc: Brainstorm → Write Plan
+  var skipFrom = phasePos['brainstorm'];
+  var skipTo = phasePos['write-plan'];
+  if (skipFrom && skipTo) {
+    var midX = (skipFrom.x + skipTo.x) / 2 + (cx - (skipFrom.x + skipTo.x) / 2) * 0.5;
+    var midY = (skipFrom.y + skipTo.y) / 2 + (cy - (skipFrom.y + skipTo.y) / 2) * 0.5;
+    stateMachineGroup.append('path')
+      .attr('class', 'sm-skip-arc')
+      .attr('d', 'M' + skipFrom.x + ',' + skipFrom.y +
+        ' Q' + midX + ',' + midY + ' ' + skipTo.x + ',' + skipTo.y);
+
+    stateMachineGroup.append('text')
+      .attr('x', midX).attr('y', midY - 10)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#F39C12').attr('font-size', '9px')
+      .text('skip (trivial)');
+  }
+
+  // Draw phase nodes
+  phases.forEach(function(phase) {
+    var pos = phasePos[phase.id];
+    var color = PHASE_COLORS[phase.phase] || '#8b949e';
+
+    var gNode = stateMachineGroup.append('g')
+      .attr('class', 'sm-phase-node')
+      .attr('data-phase', phase.id)
+      .attr('transform', 'translate(' + (pos.x - nodeW / 2) + ',' + (pos.y - nodeH / 2) + ')');
+
+    // Rounded rect
+    gNode.append('rect')
+      .attr('width', nodeW).attr('height', nodeH)
+      .attr('rx', 12).attr('ry', 12)
+      .attr('fill', '#161b22')
+      .attr('stroke', color).attr('stroke-width', 2.5);
+
+    // Step number
+    gNode.append('circle')
+      .attr('cx', 24).attr('cy', 28).attr('r', 14)
+      .attr('fill', color).attr('opacity', 0.2);
+    gNode.append('text')
+      .attr('x', 24).attr('y', 33)
+      .attr('text-anchor', 'middle')
+      .attr('fill', color).attr('font-size', '14px').attr('font-weight', '700')
+      .text(phase.step);
+
+    // Label
+    gNode.append('text')
+      .attr('x', 46).attr('y', 33)
+      .attr('fill', '#f0f6fc').attr('font-size', '14px').attr('font-weight', '600')
+      .text(phase.label);
+
+    // Phase + artifact
+    gNode.append('text')
+      .attr('x', 14).attr('y', 58)
+      .attr('fill', color).attr('font-size', '10px').attr('opacity', 0.7)
+      .text(phase.phase);
+    gNode.append('text')
+      .attr('x', nodeW - 10).attr('y', 58)
+      .attr('text-anchor', 'end')
+      .attr('fill', '#8b949e').attr('font-size', '9px')
+      .text(phase.artifact);
+
+    // Depth-3 hook badges
+    if (depth >= 3 && WORKFLOW_TRACE[phase.id]) {
+      var hooks = WORKFLOW_TRACE[phase.id].hooks;
+      if (hooks.length > 0) {
+        gNode.append('text')
+          .attr('x', nodeW - 10).attr('y', 72)
+          .attr('text-anchor', 'end')
+          .attr('fill', '#E74C3C').attr('font-size', '7px')
+          .text(hooks.join(', '));
+      }
+    }
+
+    // Click to drill down
+    gNode.style('cursor', 'pointer').on('click', function(event) {
+      event.stopPropagation();
+      smDrillDown(phase);
+    });
+  });
+
+  // Click background to close drill-down
+  stateMachineGroup.select('rect').on('click', function() {
+    smCloseDrillDown();
+    closePanel();
+  });
+}
+
+function smDrillDown(phase) {
+  var depth = WORKFLOW_DEPTH;
+  var pos = null;
+
+  // Find position from rendered node
+  stateMachineGroup.selectAll('.sm-phase-node').each(function() {
+    var el = d3.select(this);
+    if (el.attr('data-phase') === phase.id) {
+      var t = el.attr('transform');
+      var match = t.match(/translate\(([^,]+),([^)]+)\)/);
+      if (match) {
+        pos = { x: parseFloat(match[1]) + 100, y: parseFloat(match[2]) + 40 };
+      }
+    }
+  });
+  if (!pos) return;
+
+  // Clear previous drill-down
+  stateMachineGroup.selectAll('.sm-entity-satellite, .sm-entity-line').remove();
+
+  // Highlight active phase
+  stateMachineGroup.selectAll('.sm-phase-node')
+    .classed('sm-active', function() { return d3.select(this).attr('data-phase') === phase.id; });
+
+  // Get entities for this phase at current depth
+  var entities = getPhaseEntities(phase.id, depth);
+  var allIds = [];
+  var typeColors = { plugins: '#4A90D9', skills: '#50C878', agents: '#FF8C42', mcp: '#9B59B6', hooks: '#E74C3C' };
+  var typeOrder = ['plugins', 'skills', 'agents', 'mcp', 'hooks'];
+
+  typeOrder.forEach(function(type) {
+    entities[type].forEach(function(id) {
+      allIds.push({ id: id, type: type, color: typeColors[type] });
+    });
+  });
+
+  if (allIds.length === 0) {
+    showSprintDetail(phase);
+    return;
+  }
+
+  // Fan out entities radially around the phase
+  var fanRadius = 120;
+  var angleStep = (2 * Math.PI) / Math.max(allIds.length, 1);
+  var startAngle = -Math.PI / 2;
+
+  allIds.forEach(function(item, i) {
+    var angle = startAngle + i * angleStep;
+    var ex = pos.x + fanRadius * Math.cos(angle);
+    var ey = pos.y + fanRadius * Math.sin(angle);
+    var label = item.id;
+    var n = nodeById[item.id];
+    if (n) label = n.label;
+
+    // Connecting line
+    stateMachineGroup.append('line')
+      .attr('class', 'sm-entity-line')
+      .attr('x1', pos.x).attr('y1', pos.y)
+      .attr('x2', ex).attr('y2', ey);
+
+    // Entity circle
+    var satG = stateMachineGroup.append('g')
+      .attr('class', 'sm-entity-satellite')
+      .attr('transform', 'translate(' + ex + ',' + ey + ')')
+      .attr('opacity', 0)
+      .on('click', function(event) {
+        event.stopPropagation();
+        if (nodeById[item.id]) {
+          // Switch to force view and navigate
+          changeViewMode('force');
+          setTimeout(function() { navigateTo(item.id); }, 100);
+        }
+      });
+
+    satG.append('circle')
+      .attr('r', depth === 1 ? 10 : 7)
+      .attr('fill', item.color).attr('opacity', 0.8);
+
+    satG.append('text')
+      .attr('dx', depth === 1 ? 14 : 10).attr('dy', 4)
+      .attr('fill', '#c9d1d9').attr('font-size', depth === 1 ? '10px' : '8px')
+      .text(label.length > 20 ? label.substring(0, 18) + '..' : label);
+
+    satG.append('title').text(label + ' (' + item.type + ')');
+
+    // Animate in
+    satG.transition().duration(300).delay(i * 30)
+      .attr('opacity', 0.85);
+  });
+
+  // Show detail panel
+  showSprintDetail(phase);
+  smActivePhase = phase.id;
+}
+
+function smCloseDrillDown() {
+  stateMachineGroup.selectAll('.sm-entity-satellite, .sm-entity-line').remove();
+  stateMachineGroup.selectAll('.sm-phase-node').classed('sm-active', false);
+  smActivePhase = null;
+}
+
+// ═══════════════════════════════════════════════════════
+// WORKFLOW VIEW INTEGRATION
+// ═══════════════════════════════════════════════════════
+
+// Patch deselectAll to clear workflow highlights
+var _origDeselectAll = deselectAll;
+deselectAll = function() {
+  _origDeselectAll();
+  if (currentViewMode === 'statemachine') smCloseDrillDown();
+};
+
+// Patch onSearch to highlight in workflow views
+var _origOnSearch = onSearch;
+onSearch = function(query) {
+  if (!sprintActive || currentViewMode === 'force') {
+    _origOnSearch(query);
+    return;
+  }
+  searchQuery = query.toLowerCase().trim();
+  if (!searchQuery) return;
+
+  if (currentViewMode === 'sequence') {
+    sequenceGroup.selectAll('.sequence-row-label')
+      .attr('fill', function() {
+        var text = d3.select(this).text().toLowerCase();
+        return text.includes(searchQuery) ? '#58a6ff' : '#c9d1d9';
+      })
+      .attr('font-weight', function() {
+        var text = d3.select(this).text().toLowerCase();
+        return text.includes(searchQuery) ? '700' : 'normal';
+      });
+  } else if (currentViewMode === 'sankey') {
+    sankeyGroup.selectAll('.sankey-band rect').attr('fill-opacity', function() {
+      var title = d3.select(this.parentNode).select('title').text().toLowerCase();
+      return title.includes(searchQuery) ? 0.9 : 0.2;
+    });
+  }
+};
 </script>
 </body>
 </html>
