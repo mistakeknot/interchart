@@ -474,7 +474,7 @@ body {
 <script>
 // DATA_PLACEHOLDER is replaced by the generator with scanned JSON
 const data = {
-  "generated": "2026-03-04T02:56:27.839Z",
+  "generated": "2026-03-04T19:14:00.280Z",
   "stats": {
     "nodes": 188,
     "edges": 262,
@@ -1821,7 +1821,7 @@ const data = {
       "label": "intersight",
       "description": "Automated UI/UX design analysis — extracts W3C DTCG tokens, component inventory, and layout analysis from any URL.",
       "meta": {
-        "version": "0.1.1",
+        "version": "0.1.2",
         "path": "interverse/intersight",
         "repoUrl": "https://github.com/mistakeknot/intersight"
       }
@@ -2297,7 +2297,7 @@ const data = {
       "label": "clavain",
       "description": "Self-improving agent rig: codifies product and engineering discipline into composable workflows from brainstorm to ship",
       "meta": {
-        "version": "0.6.137",
+        "version": "0.6.138",
         "path": "os/clavain",
         "repoUrl": "https://github.com/mistakeknot/Clavain",
         "commandCount": 45
@@ -6317,6 +6317,9 @@ _origRebuildGraph = function() {
   hullLabelGroup.style('display', null);
   _origRebuildGraph2();
 };
+
+// ── Re-render with patched rebuildGraph to activate default workflow view ──
+rebuildGraph();
 
 // ═══════════════════════════════════════════════════════
 // SEQUENCE / SWIMLANE VIEW
