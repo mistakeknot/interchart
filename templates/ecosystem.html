@@ -439,8 +439,8 @@ body {
   </div>
   <span class="workflow-select-label" id="view-mode-label">View:</span>
   <select class="workflow-select" id="view-mode" onchange="changeViewMode(this.value)">
-    <option value="force">Force Graph</option>
-    <option value="sequence" selected>Swimlane</option>
+    <option value="force" selected>Force Graph</option>
+    <option value="sequence">Swimlane</option>
     <option value="sankey">Sankey Flow</option>
     <option value="statemachine">State Machine</option>
   </select>
@@ -2119,7 +2119,7 @@ function showSprintDetail(phase) {
 // WORKFLOW VISUALIZATION VIEWS
 // ═══════════════════════════════════════════════════════
 
-var currentViewMode = 'sequence'; // 'force', 'sequence', 'sankey', 'statemachine'
+var currentViewMode = 'force'; // 'force', 'sequence', 'sankey', 'statemachine'
 
 // SVG layer for state machine view (rendered in main SVG with zoom/pan)
 var stateMachineGroup = g.append('g').attr('class', 'statemachine-layer');
