@@ -2633,7 +2633,6 @@ var smActivePhase = null; // currently expanded phase in state machine view
 function renderStateMachineView() {
   var depth = WORKFLOW_DEPTH;
   var phases = SPRINT_PHASES.filter(function(p) { return activePhases.has(p.id); });
-  console.log('[SM] phases:', phases.length, 'depth:', depth, 'w:', width, 'h:', height);
   if (phases.length === 0) return;
 
   smActivePhase = null;
@@ -2646,8 +2645,8 @@ function renderStateMachineView() {
   // Elliptical layout — larger radius than force graph
   var cx = width / 2;
   var cy = height / 2;
-  var rx = Math.min(width * 0.38, 500);
-  var ry = Math.min(height * 0.35, 350);
+  var rx = Math.min(width * 0.42, 600);
+  var ry = Math.min(height * 0.40, 420);
   var nodeW = 200, nodeH = 80;
 
   // Compute positions for active phases
@@ -2704,7 +2703,6 @@ function renderStateMachineView() {
     }
   }
 
-  console.log('[SM] drew', phases.length - 1, 'transitions');
 
   // Skip arc: Brainstorm → Write Plan
   var skipFrom = phasePos['brainstorm'];
@@ -2778,6 +2776,45 @@ function renderStateMachineView() {
           .attr('text-anchor', 'end')
           .attr('fill', '#E74C3C').attr('font-size', '7px')
           .text(hooks.join(', '));
+      }
+    }
+
+    // Entity pills below phase node (depth >= 2)
+    if (depth >= 2) {
+      var entities = getPhaseEntities(phase.id, depth);
+      var typeColors = { plugins: '#4A90D9', skills: '#50C878', agents: '#FF8C42', mcp: '#9B59B6', hooks: '#E74C3C' };
+      var typeOrder = ['plugins', 'skills', 'agents', 'mcp', 'hooks'];
+      var allItems = [];
+      typeOrder.forEach(function(type) {
+        entities[type].forEach(function(id) {
+          var n = nodeById[id];
+          allItems.push({ id: id, type: type, color: typeColors[type], label: n ? n.label : id });
+        });
+      });
+
+      var pillY = nodeH + 6;
+      var pillH = 16;
+      var maxVisible = 6;
+      var shown = allItems.slice(0, maxVisible);
+      var overflow = allItems.length - maxVisible;
+
+      shown.forEach(function(item, j) {
+        var py = pillY + j * (pillH + 2);
+        gNode.append('circle')
+          .attr('cx', 8).attr('cy', py + pillH / 2)
+          .attr('r', 4).attr('fill', item.color).attr('opacity', 0.8);
+        gNode.append('text')
+          .attr('x', 16).attr('y', py + pillH / 2 + 3)
+          .attr('fill', '#c9d1d9').attr('font-size', '9px')
+          .text(item.label.length > 22 ? item.label.substring(0, 20) + '..' : item.label);
+      });
+
+      if (overflow > 0) {
+        var py = pillY + shown.length * (pillH + 2);
+        gNode.append('text')
+          .attr('x', 8).attr('y', py + pillH / 2 + 3)
+          .attr('fill', '#8b949e').attr('font-size', '8px')
+          .text('+' + overflow + ' more (click to expand)');
       }
     }
 
