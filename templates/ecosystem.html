@@ -1150,7 +1150,7 @@ function dragended(event, d) {
 // Zoom to fit after layout settles
 setTimeout(function() {
   var bounds = g.node().getBBox();
-  var scale = 0.8 / Math.max(bounds.width / width, bounds.height / height);
+  var scale = 0.95 / Math.max(bounds.width / width, bounds.height / height);
   var midX = bounds.x + bounds.width / 2;
   var midY = bounds.y + bounds.height / 2;
   svg.transition().duration(750).call(
