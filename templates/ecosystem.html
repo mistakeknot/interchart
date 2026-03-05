@@ -2633,6 +2633,7 @@ var smActivePhase = null; // currently expanded phase in state machine view
 function renderStateMachineView() {
   var depth = WORKFLOW_DEPTH;
   var phases = SPRINT_PHASES.filter(function(p) { return activePhases.has(p.id); });
+  console.log('[SM] phases:', phases.length, 'depth:', depth, 'w:', width, 'h:', height);
   if (phases.length === 0) return;
 
   smActivePhase = null;
@@ -2640,7 +2641,7 @@ function renderStateMachineView() {
   // Background
   stateMachineGroup.append('rect')
     .attr('width', width).attr('height', height)
-    .attr('fill', '#0d1117');
+    .attr('fill', '#161b22');
 
   // Elliptical layout — larger radius than force graph
   var cx = width / 2;
@@ -2678,7 +2679,9 @@ function renderStateMachineView() {
     stateMachineGroup.append('line')
       .attr('class', 'sm-transition sm-transition-animated')
       .attr('x1', sx).attr('y1', sy)
-      .attr('x2', ex).attr('y2', ey);
+      .attr('x2', ex).attr('y2', ey)
+      .attr('stroke', '#58a6ff').attr('stroke-width', 2.5)
+      .attr('marker-end', 'url(#sprint-arrow)');
 
     // Gate diamond
     if (phases[i + 1].gate) {
@@ -2701,6 +2704,8 @@ function renderStateMachineView() {
     }
   }
 
+  console.log('[SM] drew', phases.length - 1, 'transitions');
+
   // Skip arc: Brainstorm → Write Plan
   var skipFrom = phasePos['brainstorm'];
   var skipTo = phasePos['write-plan'];
@@ -2710,7 +2715,8 @@ function renderStateMachineView() {
     stateMachineGroup.append('path')
       .attr('class', 'sm-skip-arc')
       .attr('d', 'M' + skipFrom.x + ',' + skipFrom.y +
-        ' Q' + midX + ',' + midY + ' ' + skipTo.x + ',' + skipTo.y);
+        ' Q' + midX + ',' + midY + ' ' + skipTo.x + ',' + skipTo.y)
+      .attr('stroke', '#F39C12').attr('stroke-width', 2).attr('fill', 'none');
 
     stateMachineGroup.append('text')
       .attr('x', midX).attr('y', midY - 10)
