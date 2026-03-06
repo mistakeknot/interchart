@@ -13,6 +13,9 @@ DATA=$(node "$SCRIPT_DIR/scan.js" "$DEMARCH_ROOT")
 NODE_COUNT=$(echo "$DATA" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.nodes))")
 EDGE_COUNT=$(echo "$DATA" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.edges))")
 
+# Refresh the checked-in scan cache alongside the generated HTML.
+printf '%s\n' "$DATA" > "$PLUGIN_DIR/data/scan.json"
+
 # Read template, replace placeholder, write output
 mkdir -p "$(dirname "$OUTPUT")"
 

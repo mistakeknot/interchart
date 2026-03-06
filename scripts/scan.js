@@ -461,7 +461,7 @@ const overlaps = resolvedEdges
 
 const CURATED_DESCRIPTIONS = {
   // Skills with empty or poor descriptions
-  'intercheck:status': 'Session health dashboard — plugin errors, MCP status, hook failures',
+  'intercheck:quality': 'Code quality metrics — syntax errors and auto-format activity for the current session',
   'interfluence:skills': 'Voice profile management — analyze writing samples, apply style adaptation',
   'interject:skills': 'Ambient research discovery — scan arXiv, HN, GitHub for relevant papers and tools',
   'interkasten:layout': 'Notion page layout optimization — structure and format synced documents',

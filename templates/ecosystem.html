@@ -1283,7 +1283,7 @@ var PHASE_SKILLS = {
                               'intertest:test-driven-development'], agents: [], mcp: [] },
   'test':          { skills: ['intertest:test-driven-development', 'intertest:verification-before-completion',
                               'intertest:systematic-debugging'], agents: [], mcp: [] },
-  'quality-gates': { skills: ['interflux:flux-drive', 'intercheck:status', 'interpeer:interpeer'],
+  'quality-gates': { skills: ['interflux:flux-drive', 'intercheck:quality', 'interpeer:interpeer'],
                      agents: ['interflux:agent:fd-architecture', 'interflux:agent:fd-safety',
                               'interflux:agent:fd-correctness', 'interflux:agent:fd-user-product',
                               'interflux:agent:fd-quality', 'intersynth:agent:synthesize-review',
@@ -1309,7 +1309,7 @@ var WORKFLOW_TRACE = {
   'review-plan':   { hooks: ['PostToolUse', 'PreToolUse'], artifactIn: 'implementation plan', artifactOut: 'review verdict', mcpTools: ['interspect:review_events'], dataContracts: ['.claude/reviews/*.md'] },
   'execute':       { hooks: ['PreToolUse', 'PostToolUse', 'SessionStart'], artifactIn: 'implementation plan', artifactOut: 'code changes', mcpTools: ['interlock:reserve_files', 'interlock:release_files'], dataContracts: ['source files', '.beads/'] },
   'test':          { hooks: ['PostToolUse'], artifactIn: 'code changes', artifactOut: 'test results', mcpTools: [], dataContracts: ['test output', 'coverage reports'] },
-  'quality-gates': { hooks: ['PostToolUse', 'PreToolUse'], artifactIn: 'code changes + test results', artifactOut: 'review reports', mcpTools: ['interspect:review_events', 'intercheck:status'], dataContracts: ['.claude/reviews/*.md', 'findings JSON'] },
+  'quality-gates': { hooks: ['PostToolUse', 'PreToolUse'], artifactIn: 'code changes + test results', artifactOut: 'review reports', mcpTools: ['interspect:review_events', 'intercheck:quality'], dataContracts: ['.claude/reviews/*.md', 'findings JSON'] },
   'resolve':       { hooks: ['PreToolUse'], artifactIn: 'review reports', artifactOut: 'resolved findings', mcpTools: [], dataContracts: ['source files'] },
   'reflect':       { hooks: ['PostToolUse'], artifactIn: 'resolved findings', artifactOut: 'learnings doc', mcpTools: ['interfluence:corpus_add'], dataContracts: ['docs/solutions/*.md', 'memory files'] },
   'ship':          { hooks: ['PostToolUse', 'SessionStart'], artifactIn: 'learnings doc', artifactOut: 'merged commits', mcpTools: ['interlock:release_all'], dataContracts: ['git log', '.beads/'] }
