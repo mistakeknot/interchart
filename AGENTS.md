@@ -39,19 +39,3 @@ git commit -m "chore: regenerate diagram" && git push origin main
 | Testing | [agents/testing.md](agents/testing.md) | Manual verification commands |
 | Gotchas | [agents/gotchas.md](agents/gotchas.md) | Blank page debugging, deploy pitfalls, CDN dependency, hull edge cases |
 
-## Philosophy Alignment Protocol
-Review [`PHILOSOPHY.md`](../../PHILOSOPHY.md) during:
-- Intake/scoping
-- Brainstorming
-- Planning
-- Execution kickoff
-- Review/gates
-- Handoff/retrospective
-
-For brainstorming/planning outputs, add two short lines:
-- **Alignment:** one sentence on how the proposal supports the module's purpose within Demarch's philosophy.
-- **Conflict/Risk:** one sentence on any tension with philosophy (or 'none').
-
-If a high-value change conflicts with philosophy, either:
-- adjust the plan to align, or
-- create follow-up work to update `PHILOSOPHY.md` explicitly.
