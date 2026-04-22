@@ -4,7 +4,7 @@
 
 | Type | Description | Size | Example |
 |------|-------------|------|---------|
-| `monorepo` | Demarch root | 24 | Demarch |
+| `monorepo` | Sylveste root | 24 | Sylveste |
 | `ecosystem` | Interverse plugin ecosystem | 20 | Interverse |
 | `hub` | Clavain hub | 20 | clavain |
 | `kernel` | Intercore kernel | 16 | intercore |

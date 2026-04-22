@@ -37,7 +37,7 @@ bash scripts/regenerate-and-deploy.sh "$(cd ../.. && pwd)" /path/to/gsvdotcom
 
 1. **Scanner** (`scripts/scan.js`) walks the monorepo reading `plugin.json`, `SKILL.md`, `hooks.json`, and Go source files. Outputs a JSON graph of nodes and edges.
 2. **Template** (`templates/ecosystem.html`) is a self-contained HTML file with inline D3.js v7 (loaded from CDN). The scanner output is injected as a `DATA_PLACEHOLDER`.
-3. **Publish** writes the generated `index.html` into `gsvdotcom/public/interchart/index.html` and pushes `gsvdotcom` `main`, so the page is served from generalsystemsventures.com instead of GitHub Pages.
+3. **Publish** writes the generated graph into `gsvdotcom/public/interchart/embed/index.html`; generalsystemsventures.com serves it inside a first-party `/interchart/` page instead of sending users to a visually separate standalone page.
 
 ## Architecture
 

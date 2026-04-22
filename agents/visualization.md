@@ -6,7 +6,7 @@ The app uses a **unified force graph** with two independent toggle buttons in th
 
 | Toggle | Content | Default |
 |--------|---------|---------|
-| **Ecosystem** | D3.js force-directed graph of all Demarch modules | ON |
+| **Ecosystem** | D3.js force-directed graph of the Sylveste / Interverse ecosystem | ON |
 | **Sprint** | Sprint workflow visualization | ON |
 
 | Selector | Options | Default | Visible when |
@@ -41,7 +41,7 @@ Both toggles can be active simultaneously. When both are on with Force Graph vie
 
 ## UI Layout
 
-- **Toolbar** (top, 44px): "Demarch" title, toggle bar (Ecosystem/Sprint), view-mode select, depth select, stats, search box
+- **Toolbar** (top, 44px): "Sylveste" title, toggle bar (Ecosystem/Sprint), view-mode select, depth select, stats, search box
 - **Sidebar toggle** (fixed position, top-left): Hamburger button to expand filter sidebar
 - **Filter sidebar** (left, 240px, overlay): Type filters + domain hull toggles + sprint phase toggles (when sprint active). Starts collapsed.
 - **Graph area** (center): Single D3.js force-directed SVG (full viewport)

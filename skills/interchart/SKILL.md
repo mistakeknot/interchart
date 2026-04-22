@@ -1,6 +1,6 @@
 ---
 name: interchart
-description: Generate interactive ecosystem diagram showing all Demarch plugins, skills, agents, MCP servers, and their relationships as a D3.js force graph.
+description: Generate interactive ecosystem diagram showing the Sylveste / Interverse plugin ecosystem, including skills, agents, MCP servers, and their relationships as a D3.js force graph.
 ---
 
 # Interchart: Ecosystem Diagram Generator
@@ -13,9 +13,9 @@ Generate an interactive HTML diagram of the Sylveste / Interverse ecosystem.
 
 2. Run the generator script:
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/generate.sh "<demarch_root>" "<output_path>"
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/generate.sh "<sylveste_root>" "<output_path>"
    ```
-   - Default output: `docs/diagrams/ecosystem.html` in the Demarch root
+   - Default output: `docs/diagrams/ecosystem.html` in the Sylveste root
    - The script scans all plugin manifests, skills, agents, MCP servers, and hooks
 
 3. Report the result to the user:

@@ -1,6 +1,6 @@
 # Deployment
 
-**CRITICAL: interchart now publishes through `gsvdotcom` at `public/interchart/index.html`, served from `https://generalsystemsventures.com/interchart/`.** GitHub Pages is no longer the canonical live host.
+**CRITICAL: interchart now publishes through `gsvdotcom` at `public/interchart/embed/index.html`, served inside `https://generalsystemsventures.com/interchart/`.** GitHub Pages is no longer the canonical live host.
 
 ## Deploy Steps
 
@@ -17,7 +17,7 @@ bash scripts/regenerate-and-deploy.sh "$(cd ../.. && pwd)" /path/to/gsvdotcom
 
 ## Agent-Driven (Primary)
 
-Agents regenerate the diagram as a final step after any change that adds, removes, or renames plugins, skills, agents, MCP servers, or hooks. After regenerating, publish it into `gsvdotcom/public/interchart/index.html` so the canonical live copy stays on generalsystemsventures.com.
+Agents regenerate the diagram as a final step after any change that adds, removes, or renames plugins, skills, agents, MCP servers, or hooks. After regenerating, publish it into `gsvdotcom/public/interchart/embed/index.html` so the canonical live copy stays embedded inside generalsystemsventures.com.
 
 ## Live Host
 

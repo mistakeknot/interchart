@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 INTERCHART_DIR="$(dirname "$SCRIPT_DIR")"
 SYLVESTE_ROOT="${1:-$(cd "$INTERCHART_DIR/../.." && pwd)}"
 GSVDOTCOM_ROOT="${2:-${GSVDOTCOM_ROOT:-$HOME/projects/gsvdotcom}}"
-TARGET_REL="public/interchart/index.html"
+TARGET_REL="public/interchart/embed/index.html"
 LIVE_URL="https://generalsystemsventures.com/interchart/"
 LOCK_FILE="${TMPDIR:-/tmp}/interchart-publish-${UID:-unknown}.lock"
 
@@ -71,7 +71,7 @@ if [ -f "$WORKTREE_DIR/$TARGET_REL" ]; then
   fi
 fi
 
-mkdir -p "$WORKTREE_DIR/public/interchart"
+mkdir -p "$(dirname "$WORKTREE_DIR/$TARGET_REL")"
 cp -f "$TMPHTML" "$WORKTREE_DIR/$TARGET_REL"
 git -C "$WORKTREE_DIR" add "$TARGET_REL"
 if git -C "$WORKTREE_DIR" diff --cached --quiet; then

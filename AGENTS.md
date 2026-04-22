@@ -27,7 +27,7 @@ bash scripts/regenerate-and-deploy.sh "$(cd ../.. && pwd)" /path/to/gsvdotcom
 **Location:** `interverse/interchart/`
 **Scanner:** `scripts/scan.js` (Node.js, ~529 lines)
 **Template:** `templates/ecosystem.html` (D3.js v7, ~2977 lines)
-**Deploy:** pushes regenerated HTML into gsvdotcom `public/interchart/index.html` on `main`
+**Deploy:** pushes regenerated HTML into gsvdotcom `public/interchart/embed/index.html`; the site-level `/interchart/` page wraps it in the main GSV chrome
 
 ## Topic Guides
 

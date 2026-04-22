@@ -20,7 +20,7 @@ bash scripts/regenerate-and-deploy.sh
 - Static scanning only — no MCP servers, no runtime dependencies
 - D3.js v7 force graph — self-contained HTML, CDN-loaded D3
 - Node.js scanner — reads plugin.json, SKILL.md, hooks.json across monorepo
-- Output: single HTML file at `docs/diagrams/ecosystem.html`
+- `generate.sh` default output: local snapshot at `docs/diagrams/ecosystem.html`; canonical hosted copy is the gsvdotcom embed published by `regenerate-and-deploy.sh`
 - Overlaps shown as convex hull domain overlays, not edges
 - Server-side cron (every 5 min) — no GitHub Actions for regeneration
 - Template variables must be defined before use (no hoisting for `const`/`let`)

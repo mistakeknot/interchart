@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-22T06:18:49.907Z",
+  "generated": "2026-04-22T07:04:37.667Z",
   "stats": {
     "nodes": 152,
     "edges": 187,
@@ -20,12 +20,12 @@
   },
   "nodes": [
     {
-      "id": "demarch",
+      "id": "sylveste",
       "type": "monorepo",
-      "label": "Demarch",
+      "label": "Sylveste",
       "description": "Open-source autonomous software development agency platform",
       "meta": {
-        "repoUrl": "https://github.com/mistakeknot/Demarch"
+        "repoUrl": "https://github.com/mistakeknot/Sylveste"
       }
     },
     {
@@ -1708,7 +1708,7 @@
   "edges": [
     {
       "source": "interverse",
-      "target": "demarch",
+      "target": "sylveste",
       "type": "part-of"
     },
     {
@@ -2308,17 +2308,17 @@
     },
     {
       "source": "intercore",
-      "target": "demarch",
+      "target": "sylveste",
       "type": "part-of"
     },
     {
       "source": "intermute-service",
-      "target": "demarch",
+      "target": "sylveste",
       "type": "part-of"
     },
     {
       "source": "interbase-sdk",
-      "target": "demarch",
+      "target": "sylveste",
       "type": "part-of"
     },
     {

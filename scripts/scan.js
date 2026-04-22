@@ -12,7 +12,7 @@ const nodeIds = new Set();
 const edgeIds = new Set();
 const CLAUDE_CODE_HOOKS_DOCS_URL = 'https://docs.anthropic.com/en/docs/claude-code/hooks';
 const REPO_NAME_OVERRIDES = {
-  demarch: 'Demarch',
+  sylveste: 'Sylveste',
   interverse: 'Interverse',
   clavain: 'Clavain',
   autarch: 'Autarch'
@@ -342,15 +342,15 @@ function scanPluginDir(pluginDir, pluginName, isHub = false) {
 // --- Main scan ---
 
 // 1. Monorepo root node
-addNode('demarch', 'monorepo', 'Demarch', 'Open-source autonomous software development agency platform', {
-  repoUrl: repoUrlForName('demarch')
+addNode('sylveste', 'monorepo', 'Sylveste', 'Open-source autonomous software development agency platform', {
+  repoUrl: repoUrlForName('sylveste')
 });
 
 // 1b. Interverse ecosystem node (parent of all inter* plugins)
 addNode('interverse', 'ecosystem', 'Interverse', 'Companion plugin ecosystem (33+ plugins)', {
   repoUrl: repoUrlForName('interverse')
 });
-addEdge('interverse', 'demarch', 'part-of');
+addEdge('interverse', 'sylveste', 'part-of');
 
 // 2. Scan all plugins
 const pluginsDir = path.join(ROOT, 'interverse');
@@ -380,19 +380,19 @@ addNode('intercore', 'kernel', 'Intercore', 'Kernel — phases, gates, runs, dis
   path: 'core/intercore',
   repoUrl: repoUrlForName('intercore')
 });
-addEdge('intercore', 'demarch', 'part-of');
+addEdge('intercore', 'sylveste', 'part-of');
 
 addNode('intermute-service', 'service', 'Intermute', 'Multi-agent coordination service (Go)', {
   path: 'core/intermute',
   repoUrl: repoUrlForName('intermute')
 });
-addEdge('intermute-service', 'demarch', 'part-of');
+addEdge('intermute-service', 'sylveste', 'part-of');
 
 addNode('interbase-sdk', 'sdk', 'Interbase', 'Shared integration SDK for dual-mode plugins', {
   path: 'sdk/interbase',
   repoUrl: repoUrlForName('interbase')
 });
-addEdge('interbase-sdk', 'demarch', 'part-of');
+addEdge('interbase-sdk', 'sylveste', 'part-of');
 
 // Autarch / Interforge
 const interforgeDir = path.join(ROOT, 'Interforge');
@@ -402,7 +402,7 @@ try {
     path: 'Interforge',
     repoUrl: repoUrlForName('autarch')
   });
-  addEdge('autarch', 'demarch', 'part-of');
+  addEdge('autarch', 'sylveste', 'part-of');
   addEdge('autarch', 'intercore', 'depends-on');
 } catch {
   process.stderr.write('warn: Interforge dir not found, adding Autarch as external ref\n');
@@ -411,9 +411,9 @@ try {
   });
 }
 
-// 5. Structural edges — hub is part of Demarch, plugins are part of Interverse
+// 5. Structural edges — Clavain is part of Sylveste, plugins are part of Interverse
 if (nodeIds.has('clavain')) {
-  addEdge('clavain', 'demarch', 'part-of');
+  addEdge('clavain', 'sylveste', 'part-of');
   addEdge('clavain', 'intercore', 'depends-on');
 }
 

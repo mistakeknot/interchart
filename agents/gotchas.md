@@ -8,4 +8,4 @@
 - **D3 CDN dependency**: The generated HTML loads `https://d3js.org/d3.v7.min.js` — it will not render offline.
 - **`box-sizing: border-box`**: The template uses this globally. The sidebar overlays the graph (no `padding-left`) so the SVG content area is the full `100vw`.
 - **Convex hull edge case**: `d3.polygonHull()` requires 3+ non-collinear points. Two-point domains use a custom rounded-rectangle path. Single-point domains are skipped.
-- **Legacy gh-pages instructions are stale**: if you push to `gh-pages`, nothing user-visible should depend on it anymore. The hosted copy is the file published into `gsvdotcom/public/interchart/index.html`.
+- **Legacy gh-pages instructions are stale**: if you push to `gh-pages`, nothing user-visible should depend on it anymore. The hosted graph is the file published into `gsvdotcom/public/interchart/embed/index.html`, wrapped by the site-level `/interchart/` page.
