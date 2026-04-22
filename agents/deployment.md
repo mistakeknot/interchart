@@ -1,31 +1,27 @@
 # Deployment
 
-**CRITICAL: GitHub Pages deploys from `main` via Actions, NOT from the `gh-pages` branch.** The deploy workflow (`.github/workflows/deploy.yml`) triggers on pushes to `main` and builds `_site/` from `templates/ecosystem.html` + `data/scan.json`. Pushing to `gh-pages` alone does nothing — the live site won't update.
+**CRITICAL: interchart now publishes through `gsvdotcom` at `public/interchart/index.html`, served from `https://generalsystemsventures.com/interchart/`.** GitHub Pages is no longer the canonical live host.
 
 ## Deploy Steps
 
 ```bash
-# 1. Generate (updates docs/diagrams/ecosystem.html + data/scan.json)
-bash scripts/generate.sh /root/projects/Demarch
+# 1. Regenerate and publish to gsvdotcom
+bash scripts/regenerate-and-deploy.sh
 
-# 2. Commit template + scan data to main in the interchart repo
-cd interverse/interchart
-git add templates/ecosystem.html data/scan.json
-git commit -m "chore: regenerate diagram"
-git push origin main
+# 2. The script commits and pushes gsvdotcom/main via a temporary worktree
+#    so the live site updates from generalsystemsventures.com/interchart/
 
-# 3. Actions workflow deploys automatically (~30s)
+# If gsvdotcom lives elsewhere
+bash scripts/regenerate-and-deploy.sh "$(cd ../.. && pwd)" /path/to/gsvdotcom
 ```
-
-The legacy `regenerate-and-deploy.sh` script pushes to `gh-pages` but this does NOT trigger the Pages deploy. Use the steps above instead.
 
 ## Agent-Driven (Primary)
 
-Agents regenerate the diagram as a final step after any change that adds, removes, or renames plugins, skills, agents, MCP servers, or hooks. This is documented in the Interverse root `AGENTS.md` under "Ecosystem Diagram (interchart)". After generating, **commit and push to `main`** in the interchart repo to trigger deployment.
+Agents regenerate the diagram as a final step after any change that adds, removes, or renames plugins, skills, agents, MCP servers, or hooks. After regenerating, publish it into `gsvdotcom/public/interchart/index.html` so the canonical live copy stays on generalsystemsventures.com.
 
-## GitHub Pages
+## Live Host
 
-- Deploy method: GitHub Actions workflow on push to `main`
-- Workflow: `.github/workflows/deploy.yml` → builds `_site/` → `actions/deploy-pages`
-- URL: https://mistakeknot.github.io/interchart/
-- The `gh-pages` branch exists but is NOT used for deployment (legacy)
+- Canonical URL: https://generalsystemsventures.com/interchart/
+- Publish method: temporary worktree commit/push into `gsvdotcom` `main`
+- `regenerate-and-deploy.sh` refreshes `data/scan.json` before publishing so the checked-in scan cache stays aligned with the hosted copy; `docs/diagrams/ecosystem.html` is no longer treated as the canonical live artifact
+- `gh-pages` is legacy and should not be treated as canonical

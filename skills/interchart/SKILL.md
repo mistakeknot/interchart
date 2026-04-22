@@ -5,11 +5,11 @@ description: Generate interactive ecosystem diagram showing all Demarch plugins,
 
 # Interchart: Ecosystem Diagram Generator
 
-Generate an interactive HTML diagram of the Demarch ecosystem.
+Generate an interactive HTML diagram of the Sylveste / Interverse ecosystem.
 
 ## Steps
 
-1. Determine the Demarch monorepo root directory. Default: the monorepo root (parent of `interverse/`, `os/`, `core/`). If you're unsure, look for the directory containing `interverse/` and `os/clavain/`.
+1. Determine the Sylveste monorepo root directory. Default: the monorepo root (parent of `interverse/`, `os/`, `core/`). If you're unsure, look for the directory containing `interverse/` and `os/Clavain/`.
 
 2. Run the generator script:
    ```bash

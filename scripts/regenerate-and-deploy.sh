@@ -1,53 +1,84 @@
 #!/usr/bin/env bash
-# Regenerate the ecosystem diagram from local repos and push to gh-pages.
-# Uses git worktree so it never disturbs the main working tree.
-# Designed to be called from a git post-push hook or cron.
+# Regenerate the interchart HTML and publish it through gsvdotcom at /interchart/.
+# Uses a git worktree for the gsvdotcom repo so it never disturbs the main working tree.
 set -euo pipefail
 
-DEMARCH_ROOT="${1:-/root/projects/Demarch}"
-INTERCHART_DIR="$DEMARCH_ROOT/interverse/interchart"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+INTERCHART_DIR="$(dirname "$SCRIPT_DIR")"
+SYLVESTE_ROOT="${1:-$(cd "$INTERCHART_DIR/../.." && pwd)}"
+GSVDOTCOM_ROOT="${2:-${GSVDOTCOM_ROOT:-$HOME/projects/gsvdotcom}}"
+TARGET_REL="public/interchart/index.html"
+LIVE_URL="https://generalsystemsventures.com/interchart/"
+LOCK_FILE="${TMPDIR:-/tmp}/interchart-publish-${UID:-unknown}.lock"
 
-# Generate
-DATA=$(node "$INTERCHART_DIR/scripts/scan.js" "$DEMARCH_ROOT" 2>/dev/null)
-NODE_COUNT=$(echo "$DATA" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.nodes))")
-EDGE_COUNT=$(echo "$DATA" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.edges))")
-
-# Build HTML into a temp file
-TMPHTML=$(mktemp)
-node -e "
-  const fs = require('fs');
-  const tmpl = fs.readFileSync('$INTERCHART_DIR/templates/ecosystem.html', 'utf8');
-  const data = fs.readFileSync('/dev/stdin', 'utf8');
-  fs.writeFileSync('$TMPHTML', tmpl.replace('/*DATA_PLACEHOLDER*/', data.trim()));
-" <<< "$DATA"
-
-# Check if anything changed (compare full file hash, not just node count)
-CURRENT="$DEMARCH_ROOT/docs/diagrams/ecosystem.html"
-if [ -f "$CURRENT" ]; then
-  OLD_HASH=$(sha256sum "$CURRENT" | cut -d' ' -f1)
-  NEW_HASH=$(sha256sum "$TMPHTML" | cut -d' ' -f1)
-  if [ "$OLD_HASH" = "$NEW_HASH" ]; then
-    rm "$TMPHTML"
+if command -v flock >/dev/null 2>&1; then
+  exec 9>"$LOCK_FILE"
+  if ! flock -n 9; then
+    echo "interchart: publish already in progress ($LOCK_FILE)"
     exit 0
   fi
 fi
 
-# Update local copy
-mkdir -p "$(dirname "$CURRENT")"
-mv "$TMPHTML" "$CURRENT"
+if [ ! -d "$SYLVESTE_ROOT/interverse" ]; then
+  echo "interchart: Sylveste root not found at $SYLVESTE_ROOT" >&2
+  exit 1
+fi
 
-# Update scan data for CI deploys
-echo "$DATA" > "$INTERCHART_DIR/data/scan.json"
+if ! git -C "$GSVDOTCOM_ROOT" rev-parse --show-toplevel >/dev/null 2>&1; then
+  echo "interchart: gsvdotcom checkout not found at $GSVDOTCOM_ROOT" >&2
+  exit 1
+fi
 
-# Deploy to gh-pages using a temporary worktree (never touches main working tree)
+REMOTE_URL=$(git -C "$GSVDOTCOM_ROOT" remote get-url origin 2>/dev/null || true)
+case "$REMOTE_URL" in
+  *gsvdotcom*) ;;
+  *)
+    echo "interchart: expected gsvdotcom origin, found '${REMOTE_URL:-<missing>}'" >&2
+    exit 1
+    ;;
+esac
+
+echo "interchart: source=$SYLVESTE_ROOT target=$GSVDOTCOM_ROOT/$TARGET_REL"
+
+canonical_publish_hash() {
+  node -e "const fs=require('fs'); const crypto=require('crypto'); let text=fs.readFileSync(process.argv[1], 'utf8'); text=text.replace(/(\"generated\"\s*:\s*\")[^\"]+(\")/, '\$1__CANONICALIZED__\$2'); process.stdout.write(crypto.createHash('sha256').update(text).digest('hex'));" "$1"
+}
+
+# Generate to a temp file while refreshing the checked-in scan cache.
+TMPHTML=$(mktemp)
+trap 'rm -f "$TMPHTML"' EXIT
+
+bash "$SCRIPT_DIR/generate.sh" "$SYLVESTE_ROOT" "$TMPHTML"
+
+SCAN_CACHE="$INTERCHART_DIR/data/scan.json"
+NODE_COUNT=$(node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log(j.stats.nodes);" "$SCAN_CACHE")
+EDGE_COUNT=$(node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log(j.stats.edges);" "$SCAN_CACHE")
+
+# Publish via a temporary worktree on gsvdotcom/main.
 WORKTREE_DIR=$(mktemp -d)
-trap 'git -C "$INTERCHART_DIR" worktree remove --force "$WORKTREE_DIR" 2>/dev/null; rm -rf "$WORKTREE_DIR"' EXIT
+trap 'rm -f "$TMPHTML"; git -C "$GSVDOTCOM_ROOT" worktree remove --force "$WORKTREE_DIR" 2>/dev/null; rm -rf "$WORKTREE_DIR"' EXIT
 
-git -C "$INTERCHART_DIR" fetch origin gh-pages 2>/dev/null
-git -C "$INTERCHART_DIR" worktree add --detach "$WORKTREE_DIR" origin/gh-pages 2>/dev/null
-cp "$CURRENT" "$WORKTREE_DIR/index.html"
-git -C "$WORKTREE_DIR" add index.html
-git -C "$WORKTREE_DIR" commit -m "chore: regenerate diagram ($NODE_COUNT nodes, $EDGE_COUNT edges)" 2>/dev/null || { echo "interchart: no changes to deploy"; exit 0; }
-git -C "$WORKTREE_DIR" push origin HEAD:gh-pages
+git -C "$GSVDOTCOM_ROOT" fetch --quiet origin main
+git -C "$GSVDOTCOM_ROOT" worktree add --quiet --detach "$WORKTREE_DIR" origin/main
 
-echo "interchart: deployed ($NODE_COUNT nodes, $EDGE_COUNT edges)"
+# No-op if the published target is unchanged relative to origin/main.
+if [ -f "$WORKTREE_DIR/$TARGET_REL" ]; then
+  OLD_HASH=$(canonical_publish_hash "$WORKTREE_DIR/$TARGET_REL")
+  NEW_HASH=$(canonical_publish_hash "$TMPHTML")
+  if [ "$OLD_HASH" = "$NEW_HASH" ]; then
+    echo "interchart: no changes for $LIVE_URL"
+    exit 0
+  fi
+fi
+
+mkdir -p "$WORKTREE_DIR/public/interchart"
+cp -f "$TMPHTML" "$WORKTREE_DIR/$TARGET_REL"
+git -C "$WORKTREE_DIR" add "$TARGET_REL"
+if git -C "$WORKTREE_DIR" diff --cached --quiet; then
+  echo "interchart: no changes to publish"
+  exit 0
+fi
+git -C "$WORKTREE_DIR" commit -m "chore: regenerate interchart ($NODE_COUNT nodes, $EDGE_COUNT edges)"
+git -C "$WORKTREE_DIR" push origin HEAD:main
+
+echo "interchart: published to $LIVE_URL ($NODE_COUNT nodes, $EDGE_COUNT edges)"

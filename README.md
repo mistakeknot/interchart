@@ -1,8 +1,8 @@
 # interchart
 
-Interactive ecosystem diagram for the Interverse monorepo. Visualizes plugins, services, skills, agents, hooks, and their relationships as an explorable force-directed graph with an optional sprint workflow overlay.
+Interactive ecosystem diagram for the Sylveste / Interverse ecosystem. Visualizes plugins, services, skills, agents, hooks, and their relationships as an explorable force-directed graph with an optional sprint workflow overlay.
 
-**Live:** https://mistakeknot.github.io/interchart/
+**Live:** https://generalsystemsventures.com/interchart/
 
 ## Features
 
@@ -21,20 +21,23 @@ Interactive ecosystem diagram for the Interverse monorepo. Visualizes plugins, s
 
 ```bash
 # Generate diagram from local monorepo
-bash scripts/generate.sh /root/projects/Interverse
+bash scripts/generate.sh
 
 # Generate to a specific output path
-bash scripts/generate.sh /root/projects/Interverse /tmp/test.html
+bash scripts/generate.sh "$(cd ../.. && pwd)" /tmp/test.html
 
-# Deploy to GitHub Pages
-bash scripts/regenerate-and-deploy.sh /root/projects/Interverse
+# Publish to generalsystemsventures.com/interchart/
+bash scripts/regenerate-and-deploy.sh
+
+# If your gsvdotcom checkout is not at ~/projects/gsvdotcom
+bash scripts/regenerate-and-deploy.sh "$(cd ../.. && pwd)" /path/to/gsvdotcom
 ```
 
 ## How it works
 
 1. **Scanner** (`scripts/scan.js`) walks the monorepo reading `plugin.json`, `SKILL.md`, `hooks.json`, and Go source files. Outputs a JSON graph of nodes and edges.
 2. **Template** (`templates/ecosystem.html`) is a self-contained HTML file with inline D3.js v7 (loaded from CDN). The scanner output is injected as a `DATA_PLACEHOLDER`.
-3. **Deploy** pushes the generated `index.html` to the `gh-pages` branch using a git worktree.
+3. **Publish** writes the generated `index.html` into `gsvdotcom/public/interchart/index.html` and pushes `gsvdotcom` `main`, so the page is served from generalsystemsventures.com instead of GitHub Pages.
 
 ## Architecture
 
@@ -42,7 +45,7 @@ bash scripts/regenerate-and-deploy.sh /root/projects/Interverse
 scripts/
   scan.js                 → Node.js scanner (reads monorepo structure)
   generate.sh             → Scanner + template assembly
-  regenerate-and-deploy.sh → Generate + deploy to gh-pages
+  regenerate-and-deploy.sh → Generate + publish into gsvdotcom /interchart/
 templates/
   ecosystem.html          → D3.js template (CSS + JS + HTML in one file)
 data/

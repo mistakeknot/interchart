@@ -25,7 +25,7 @@ interchart already provides:
 - monorepo scanning for plugins, skills, agents, hooks, services, and kernel/hub nodes,
 - force-directed ecosystem visualization with domain overlays,
 - sprint overlay with phase relationships,
-- and deterministic generation plus gh-pages deployment.
+- and deterministic generation plus gsvdotcom publication at `/interchart/`.
 
 ## Direction
 

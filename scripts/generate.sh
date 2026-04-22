@@ -13,8 +13,17 @@ DATA=$(node "$SCRIPT_DIR/scan.js" "$DEMARCH_ROOT")
 NODE_COUNT=$(echo "$DATA" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.nodes))")
 EDGE_COUNT=$(echo "$DATA" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.edges))")
 
-# Refresh the checked-in scan cache alongside the generated HTML.
-printf '%s\n' "$DATA" > "$PLUGIN_DIR/data/scan.json"
+# Refresh the checked-in scan cache alongside the generated HTML, but ignore
+# timestamp-only churn so ad-hoc runs do not dirty the repo unnecessarily.
+SCAN_CACHE="$PLUGIN_DIR/data/scan.json"
+NEW_CANONICAL=$(printf '%s\n' "$DATA" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d); j.generated='__CANONICALIZED__'; process.stdout.write(JSON.stringify(j));})")
+OLD_CANONICAL=""
+if [ -f "$SCAN_CACHE" ]; then
+  OLD_CANONICAL=$(node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); j.generated='__CANONICALIZED__'; process.stdout.write(JSON.stringify(j));" "$SCAN_CACHE")
+fi
+if [ "$NEW_CANONICAL" != "$OLD_CANONICAL" ]; then
+  printf '%s\n' "$DATA" > "$SCAN_CACHE"
+fi
 
 # Read template, replace placeholder, write output
 mkdir -p "$(dirname "$OUTPUT")"
