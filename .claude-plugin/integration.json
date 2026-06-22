@@ -1,0 +1,9 @@
+{
+  "name": "interchart",
+  "companions": {
+    "recommended": [
+      "interkasten"
+    ],
+    "optional": []
+  }
+}
