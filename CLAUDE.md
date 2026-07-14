@@ -22,7 +22,7 @@ bash scripts/regenerate-and-deploy.sh
 - Node.js scanner — reads plugin.json, SKILL.md, hooks.json across monorepo
 - `generate.sh` default output: local snapshot at `docs/diagrams/ecosystem.html`; canonical hosted copy is the gsvdotcom embed published by `regenerate-and-deploy.sh`
 - Overlaps shown as convex hull domain overlays, not edges
-- Server-side cron (every 5 min) — no GitHub Actions for regeneration
+- Regeneration is ON-DEMAND only (ratified 2026-07-14; see README "Regeneration model") — the old 5-min server cron is retired; no GitHub Actions, no systemd timer
 - Template variables must be defined before use (no hoisting for `const`/`let`)
 - Workflow views (Swimlane/Sankey/State Machine) use static SVG layout, not force simulation
 - Workflow depth data (`WORKFLOW_TRACE`) is curated in template, not scanned

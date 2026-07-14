@@ -33,6 +33,19 @@ bash scripts/regenerate-and-deploy.sh
 bash scripts/regenerate-and-deploy.sh "$(cd ../.. && pwd)" /path/to/gsvdotcom
 ```
 
+## Regeneration model (ratified 2026-07-14: on-demand)
+
+There is deliberately **no regeneration cron/timer**. The hosted embed updates
+only when someone runs `regenerate-and-deploy.sh` (locked, worktree-isolated —
+safe to run any time). Ratified over a zklw systemd timer because publishing to
+generalsystemsventures.com stays behind an explicit operator go/no-go, and scan
+data churns constantly across the monorepo — a timer would deploy continuously
+for marginal visitor value. If the embed looks stale next to a real ecosystem
+change, run the script; freshness debt is visible in the embed's own
+"generated" stamp. (An earlier 5-minute server-side cron existed and was
+retired; the mobile-template revert risk that made staleness dangerous was
+fixed at the template source, verified 2026-07-14.)
+
 ## How it works
 
 1. **Scanner** (`scripts/scan.js`) walks the monorepo reading `plugin.json`, `SKILL.md`, `hooks.json`, and Go source files. Outputs a JSON graph of nodes and edges.
