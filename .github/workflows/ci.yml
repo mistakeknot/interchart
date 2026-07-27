@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generator-guards:
+    name: generate.sh refuses bad input
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pytest
+        run: python3 -m pip install --quiet pytest
+
+      # Only the guard tests run here. The other structural tests take their
+      # project_root fixture from tests/structural/conftest.py, which imports
+      # _shared out of the sibling interverse/_shared repo — that resolves in the
+      # monorepo checkout and cannot resolve in this repo's own CI. The guard
+      # tests deliberately resolve the root themselves so they are runnable here.
+      - name: Guard tests
+        run: python3 -m pytest tests/structural/test_generate_guards.py -q
+
+      # Belt and braces: assert the exit codes directly, not only through
+      # pytest. If someone deletes the test file, this step still fails.
+      #
+      # The whole point of these guards is that generate.sh REFUSES rather than
+      # writing a plausible-looking artefact, so CI has to prove the refusal —
+      # a green test suite that never exercised the failure path would be the
+      # same class of empty signal the guards exist to prevent.
+      - name: Wrong root must exit 2
+        run: |
+          set +e
+          bash scripts/generate.sh "$PWD" /tmp/should-not-exist.html
+          rc=$?
+          set -e
+          echo "exit=$rc"
+          test "$rc" -eq 2 || { echo "expected exit 2 for a non-monorepo root, got $rc" >&2; exit 1; }
+          test ! -f /tmp/should-not-exist.html || { echo "refused run must not write output" >&2; exit 1; }
+
+      - name: Collapsed scan must exit 3
+        run: |
+          set -e
+          # A root that passes the marker check but has an almost empty estate:
+          # the git-worktree shape, where nearly no nested repos are materialised.
+          sparse="$(mktemp -d)"
+          mkdir -p "$sparse/interverse" "$sparse/os"
+          cp -R "$PWD" "$sparse/interverse/interchart"
+          rm -rf "$sparse/interverse/interchart/.git"
+          set +e
+          bash scripts/generate.sh "$sparse" /tmp/collapsed.html
+          rc=$?
+          set -e
+          echo "exit=$rc"
+          test "$rc" -eq 3 || { echo "expected exit 3 for a collapsed scan, got $rc" >&2; exit 1; }
+          test ! -f /tmp/collapsed.html || { echo "refused run must not write output" >&2; exit 1; }
+
+      - name: Refused runs left the checked-in artefact untouched
+        run: |
+          set -e
+          # The failure this guards against destroyed a good 244-node diagram by
+          # overwriting it with a 6-node one. Proving the refusal is not enough;
+          # the artefact must still be byte-identical to HEAD afterwards.
+          git diff --quiet -- docs/diagrams/ecosystem.html \
+            || { echo "refused runs modified the checked-in artefact" >&2; exit 1; }
+          git diff --quiet -- data/scan.json \
+            || { echo "refused runs modified the scan cache" >&2; exit 1; }
+          echo "artefact and scan cache unchanged"

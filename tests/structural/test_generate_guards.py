@@ -11,8 +11,26 @@ loudly if either guard is removed or weakened.
 
 import json
 import subprocess
+from pathlib import Path
+
+import pytest
 
 MONOREPO_MARKERS = ("interverse", "os")
+
+
+@pytest.fixture
+def project_root():
+    """This repo's root, resolved locally rather than via the shared conftest.
+
+    The other structural tests take `project_root` from
+    tests/structural/conftest.py, which imports `_shared` out of
+    interverse/_shared — a sibling repo. That works in the monorepo checkout and
+    cannot work in this repo's own CI, where nothing above the repo root exists.
+
+    These guard tests are the ones CI must be able to run, so they resolve the
+    root themselves. A module-level fixture shadows the conftest one.
+    """
+    return Path(__file__).resolve().parents[2]
 
 
 def _run(script, *args, env=None):
