@@ -4,7 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from helpers import parse_frontmatter
+try:
+    from helpers import parse_frontmatter
+except ModuleNotFoundError:  # helpers delegates to _shared — see conftest.py
+    pytest.skip(
+        "requires interverse/_shared, which is a separate repo and is absent "
+        "from a standalone checkout of this plugin",
+        allow_module_level=True,
+    )
 
 
 SKILLS_DIR = Path(__file__).resolve().parent.parent.parent / "skills"

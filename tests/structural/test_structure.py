@@ -3,12 +3,21 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add interverse/ to path so _shared package is importable
 _interverse = Path(__file__).resolve().parents[3]
 if str(_interverse) not in sys.path:
     sys.path.insert(0, str(_interverse))
 
-from _shared.tests.structural.test_base import StructuralTests
+try:
+    from _shared.tests.structural.test_base import StructuralTests
+except ModuleNotFoundError:  # standalone checkout — see conftest.py
+    pytest.skip(
+        "requires interverse/_shared, which is a separate repo and is absent "
+        "from a standalone checkout of this plugin",
+        allow_module_level=True,
+    )
 
 
 class TestStructure(StructuralTests):
