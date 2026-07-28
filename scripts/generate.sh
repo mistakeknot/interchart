@@ -35,8 +35,41 @@ if [ ! -d "$SYLVESTE_ROOT/interverse" ] || [ ! -d "$SYLVESTE_ROOT/os" ]; then
   exit 2
 fi
 
-# Run scanner
-DATA=$(node "$SCRIPT_DIR/scan.js" "$SYLVESTE_ROOT")
+# Run scanner, capturing warnings separately so a missing input is a fact we can
+# act on rather than a line that scrolls past.
+SCAN_WARN="$(mktemp)"
+trap 'rm -f "$SCAN_WARN"' EXIT
+DATA=$(node "$SCRIPT_DIR/scan.js" "$SYLVESTE_ROOT" 2>"$SCAN_WARN")
+
+# --- Guard 0: refuse a scan whose inputs were missing ------------------------
+#
+# The ratio guard below catches catastrophe, not shortfall. When scan.js looked
+# for os/clavain (lowercase) it found nothing on Linux, silently dropped the hub
+# and everything it contributes, and produced 219 nodes where the Mac produced
+# 244. 219/244 is 0.90 — no ratio threshold you would actually set catches that,
+# because you cannot distinguish "a smaller estate" from "a broken scanner" by
+# counting the output.
+#
+# You can distinguish them by looking at the INPUTS. A missing directory is not
+# a smaller estate; it is a question the scanner could not answer. So: any
+# absence the scanner marks 'missing-input:' is fatal, and nothing is written.
+# Absences with a documented fallback (Interforge -> external ref) stay warnings.
+#
+# Escape hatch for a genuinely smaller checkout (a cloud runner, a partial
+# clone): INTERCHART_ALLOW_MISSING=1. It is deliberately not the default —
+# silently tolerating absent inputs is the whole defect.
+MISSING="$(grep -E '^missing-input:' "$SCAN_WARN" || true)"
+if [ -n "$MISSING" ] && [ "${INTERCHART_ALLOW_MISSING:-0}" != "1" ]; then
+  echo "interchart: REFUSING TO WRITE — the scan could not see all its inputs" >&2
+  printf '%s\n' "$MISSING" | sed 's/^/  /' >&2
+  echo "  A missing input yields a quietly smaller diagram, which no node-count" >&2
+  echo "  threshold can distinguish from a genuinely smaller estate." >&2
+  echo "  Fix the path, or set INTERCHART_ALLOW_MISSING=1 if this checkout is" >&2
+  echo "  legitimately partial." >&2
+  exit 4
+fi
+# Warnings that are not absences still belong on stderr.
+[ -s "$SCAN_WARN" ] && cat "$SCAN_WARN" >&2
 
 # Count nodes/edges
 NODE_COUNT=$(echo "$DATA" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).stats.nodes))")

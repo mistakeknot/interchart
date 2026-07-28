@@ -363,7 +363,7 @@ try {
     scanPluginDir(path.join(pluginsDir, entry.name), entry.name);
   }
 } catch (e) {
-  process.stderr.write(`warn: could not read plugins dir: ${e.message}\n`);
+  process.stderr.write(`missing-input: could not read plugins dir: ${e.message}\n`);
 }
 
 // 3. Scan Clavain hub
@@ -390,7 +390,7 @@ const clavainDir = ['Clavain', 'clavain']
 if (clavainDir) {
   scanPluginDir(clavainDir, 'clavain', true);
 } else {
-  process.stderr.write('warn: os/Clavain not found\n');
+  process.stderr.write('missing-input: os/Clavain not found — hub and every skill it contributes omitted\n');
 }
 
 // 4. Fixed infrastructure nodes
