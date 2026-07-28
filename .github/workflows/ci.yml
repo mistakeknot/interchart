@@ -64,12 +64,30 @@ jobs:
           cp -R "$PWD" "$sparse/interverse/interchart"
           rm -rf "$sparse/interverse/interchart/.git"
           set +e
-          bash scripts/generate.sh "$sparse" /tmp/collapsed.html
+          # Opt past guard 0: this sparse root has no os/Clavain, and we are
+          # exercising the collapse guard specifically.
+          INTERCHART_ALLOW_MISSING=1 bash scripts/generate.sh "$sparse" /tmp/collapsed.html
           rc=$?
           set -e
           echo "exit=$rc"
           test "$rc" -eq 3 || { echo "expected exit 3 for a collapsed scan, got $rc" >&2; exit 1; }
           test ! -f /tmp/collapsed.html || { echo "refused run must not write output" >&2; exit 1; }
+
+      - name: Missing input must exit 4
+        run: |
+          set -e
+          # The 219-vs-244 shape: os/ present so guard 1 passes, os/Clavain
+          # absent so the hub silently vanishes. No node-count threshold can
+          # catch that; guard 0 catches it at the input.
+          bare="$(mktemp -d)"
+          mkdir -p "$bare/interverse" "$bare/os"
+          set +e
+          bash scripts/generate.sh "$bare" /tmp/missing.html
+          rc=$?
+          set -e
+          echo "exit=$rc"
+          test "$rc" -eq 4 || { echo "expected exit 4 for a missing input, got $rc" >&2; exit 1; }
+          test ! -f /tmp/missing.html || { echo "refused run must not write output" >&2; exit 1; }
 
       - name: Refused runs left the checked-in artefact untouched
         run: |
