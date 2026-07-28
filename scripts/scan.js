@@ -367,12 +367,30 @@ try {
 }
 
 // 3. Scan Clavain hub
-const clavainDir = path.join(ROOT, 'os', 'clavain');
-try {
-  fs.statSync(clavainDir);
+//
+// The directory on disk is os/Clavain. Hardcoding the lowercase name worked
+// only on macOS, whose filesystem is case-insensitive; on Linux the statSync
+// threw and the hub — plus every node and edge it contributes — vanished from
+// the diagram behind a one-line warning.
+//
+// That is why the same scan produced 244 nodes on the Mac and 219 on zklw, and
+// why regenerating on the "wrong" machine looked like a legitimate update while
+// silently dropping 25 nodes. The collapse guard could not catch it: 219/244 is
+// 0.90, nowhere near the 0.5 floor. A machine-dependent generator is the real
+// source of this artefact's churn.
+const clavainDir = ['Clavain', 'clavain']
+  .map((name) => path.join(ROOT, 'os', name))
+  .find((dir) => {
+    try {
+      return fs.statSync(dir).isDirectory();
+    } catch {
+      return false;
+    }
+  });
+if (clavainDir) {
   scanPluginDir(clavainDir, 'clavain', true);
-} catch {
-  process.stderr.write('warn: os/clavain not found\n');
+} else {
+  process.stderr.write('warn: os/Clavain not found\n');
 }
 
 // 4. Fixed infrastructure nodes
