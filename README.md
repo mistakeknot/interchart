@@ -37,7 +37,7 @@ bash scripts/regenerate-and-deploy.sh "$(cd ../.. && pwd)" /path/to/gsvdotcom
 
 There is deliberately **no regeneration cron/timer**. The hosted embed updates
 only when someone runs `regenerate-and-deploy.sh` (locked, worktree-isolated —
-safe to run any time). Ratified over a zklw systemd timer because publishing to
+safe to run any time). Ratified over a systemd timer on the build host because publishing to
 generalsystemsventures.com stays behind an explicit operator go/no-go, and scan
 data churns constantly across the monorepo — a timer would deploy continuously
 for marginal visitor value. If the embed looks stale next to a real ecosystem
