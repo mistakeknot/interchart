@@ -17,4 +17,7 @@ __pycache__/
 # SQLite runtime sidecar files (interspect)
 .clavain/interspect/*.db-shm
 .clavain/interspect/*.db-wal
-.clavain/**/*.db
+
+# Agent working state and scan fingerprint
+.clavain/
+.last-scan-state
