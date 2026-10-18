@@ -17,3 +17,4 @@ __pycache__/
 # SQLite runtime sidecar files (interspect)
 .clavain/interspect/*.db-shm
 .clavain/interspect/*.db-wal
+.clavain/**/*.db
