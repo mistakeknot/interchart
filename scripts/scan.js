@@ -373,7 +373,7 @@ try {
 // threw and the hub — plus every node and edge it contributes — vanished from
 // the diagram behind a one-line warning.
 //
-// That is why the same scan produced 244 nodes on the Mac and 219 on zklw, and
+// That is why the same scan produced 244 nodes on the Mac and 219 on the Linux server, and
 // why regenerating on the "wrong" machine looked like a legitimate update while
 // silently dropping 25 nodes. The collapse guard could not catch it: 219/244 is
 // 0.90, nowhere near the 0.5 floor. A machine-dependent generator is the real
